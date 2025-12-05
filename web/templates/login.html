@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+</header>
+
+<main class="content">
+    <div class="form-card">
+        <h2>Вход</h2>
+        {{ if .error }}
+            <div class="error">{{ .error }}</div>
+        {{ end }}
+        <form method="post" action="/login">
+            <label>Логин
+                <input type="text" name="username" required>
+            </label>
+            <label>Пароль
+                <input type="password" name="password" required>
+            </label>
+            <button type="submit">Войти</button>
+        </form>
+        <p>Ещё нет аккаунта? <a href="/register">Зарегистрируйтесь</a></p>
+    </div>
+</main>
+</body>
+</html>

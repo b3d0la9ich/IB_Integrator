@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование объекта защиты</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/audit">Аудит</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <div class="card">
+        <h2>Редактирование объекта защиты</h2>
+        {{ if .error }}
+            <div class="error">{{ .error }}</div>
+        {{ end }}
+
+        <form method="post" action="/assets/{{ .asset.ID }}/edit">
+            <div class="form-grid">
+                <label class="full">Название объекта *
+                    <input type="text" name="name" required value="{{ .asset.Name }}">
+                </label>
+
+                <label>Клиент *
+                    <select name="client_id" required>
+                        <option value="">-- выберите клиента --</option>
+                        {{ range .clients }}
+                            <option value="{{ .ID }}" {{ if eq .ID $.asset.ClientID }}selected{{ end }}>
+                                {{ .Name }}
+                            </option>
+                        {{ end }}
+                    </select>
+                </label>
+
+                <label>Тип объекта
+                    <input type="text" name="type" value="{{ .asset.Type }}">
+                </label>
+
+                <label class="full">Описание
+                    <textarea name="description">{{ .asset.Description }}</textarea>
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">Сохранить</button>
+                <a href="/assets" class="btn secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

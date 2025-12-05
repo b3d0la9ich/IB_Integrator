@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Объекты защиты</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/audit">Аудит</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <div class="page-header">
+        <h2>Объекты защиты</h2>
+        <a class="btn" href="/assets/new">Новый объект</a>
+    </div>
+
+    {{ if not .assets }}
+        <p>Объекты защиты пока не заведены.</p>
+    {{ else }}
+
+    <div class="cards-grid">
+        {{ range .assets }}
+            <div class="card">
+                <div class="asset-meta">
+                    <span class="asset-badge">Объект защиты</span>
+                    <span>{{ .Client.Name }}</span>
+                </div>
+
+                <div class="asset-title">
+                    {{ .Name }}
+                </div>
+
+                <div class="asset-meta">
+                    <span><b>Тип:</b> {{ .AssetType }}</span>
+                    {{ if .Category }}
+                        <span><b>Класс / уровень защиты:</b> {{ .Category }}</span>
+                    {{ end }}
+                </div>
+
+                {{ if .Description }}
+                    <div class="asset-description">
+                        {{ .Description }}
+                    </div>
+                {{ end }}
+            </div>
+        {{ end }}
+    </div>
+
+    {{ end }}
+</main>
+</body>
+</html>

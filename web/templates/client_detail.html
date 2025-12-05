@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Клиент — {{ .client.Name }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/audit">Аудит</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <h2>Клиент: {{ .client.Name }}</h2>
+
+    <div class="grid-2">
+        <div class="card">
+            <h3>Общая информация</h3>
+            <p><strong>Тип:</strong> {{ .client.OrgType }}</p>
+            <p><strong>ИНН:</strong> {{ .client.INN }}</p>
+            <p><strong>Отрасль:</strong> {{ .client.Industry }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Контакты</h3>
+            <p><strong>Email:</strong> {{ .client.ContactEmail }}</p>
+            <p><strong>Телефон:</strong> {{ .client.ContactPhone }}</p>
+            {{ if .client.Notes }}
+                <p><strong>Комментарий:</strong> {{ .client.Notes }}</p>
+            {{ end }}
+        </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: 24px;">
+        <div class="card">
+            <h3>Объекты защиты</h3>
+
+            {{ if .client.Assets }}
+                <ul>
+                    {{ range .client.Assets }}
+                        <li>{{ .Name }}</li>
+                    {{ end }}
+                </ul>
+            {{ else }}
+                <p class="muted">Для этого клиента пока не заведены объекты защиты.</p>
+            {{ end }}
+        </div>
+    </div>
+</main>
+</body>
+</html>

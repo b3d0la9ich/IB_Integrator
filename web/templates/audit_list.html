@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Журнал аудита</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/audit">Аудит</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <h2>Журнал аудита</h2>
+
+    {{ if not .logs }}
+        <p>Записей аудита пока нет.</p>
+    {{ else }}
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Время</th>
+            <th>Пользователь</th>
+            <th>Действие</th>
+            <th>Таблица</th>
+            <th>Ключ</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .logs }}
+            <tr>
+                <td>{{ .CreatedAt }}</td>
+                <td>{{ .Username }}</td>
+                <td>{{ .Action }}</td>
+                <td>{{ .TableName }}</td>
+                <td>{{ .RecordPK }}</td>
+            </tr>
+        {{ end }}
+        </tbody>
+    </table>
+    {{ end }}
+</main>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Создание проекта по ИБ</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/audit">Аудит</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <h2>Создание проекта по ИБ</h2>
+    {{ if .error }}
+        <div class="error">{{ .error }}</div>
+    {{ end }}
+
+    <form method="post" action="/projects/new">
+        <div class="grid-2">
+            <div class="card">
+                <h3>Основная информация</h3>
+
+                <div class="form-grid">
+                    <label class="full">Название проекта *
+                        <input type="text" name="name" required placeholder="Аудит ИБ, внедрение СЗИ, пентест...">
+                    </label>
+
+                    <label>Клиент *
+                        <select name="client_id" required>
+                            <option value="">-- выберите клиента --</option>
+                            {{ range .clients }}
+                                <option value="{{ .ID }}">{{ .Name }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+
+                    <label>Объект защиты (опционально)
+                        <select name="asset_id">
+                            <option value="">-- не выбран --</option>
+                            {{ range .assets }}
+                                <option value="{{ .ID }}">{{ .Name }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+
+                    <label>Тип проекта *
+                        <select name="project_type" required>
+                            <option value="audit">Аудит ИБ</option>
+                            <option value="szi_deploy">Внедрение СЗИ</option>
+                            <option value="pentest">Пентест</option>
+                            <option value="maintenance">Сопровождение</option>
+                            <option value="compliance">Соответствие требованиям</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Планирование и ответственность</h3>
+
+                <div class="form-grid">
+                    <label class="full">Инженер по ИБ (ответственный)
+                        <select name="engineer_id">
+                            <option value="">-- не назначен --</option>
+                            {{ range .engineers }}
+                                <option value="{{ .ID }}">{{ .Username }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+
+                    <label>Планируемая дата начала
+                        <input type="date" name="planned_start" id="startDate">
+                    </label>
+
+                    <label>Планируемая дата окончания
+                        <input type="date" name="planned_end" id="endDate">
+                    </label>
+
+                    <label class="full">Краткое описание работ
+                        <textarea name="description" placeholder="Что делаем в рамках проекта: этапы, цель, ключевые задачи."></textarea>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit">Создать</button>
+            <a href="/projects" class="btn secondary">Отмена</a>
+        </div>
+    </form>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const startInput = document.getElementById("startDate");
+    const endInput = document.getElementById("endDate");
+
+    if (!startInput || !endInput) {
+        return;
+    }
+
+    // сегодняшняя дата в формате YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0];
+
+    // нельзя выбирать даты в прошлом
+    startInput.min = today;
+    endInput.min = today;
+
+    // дата окончания не может быть раньше даты начала
+    startInput.addEventListener("change", () => {
+        const val = startInput.value || today;
+        endInput.min = val;
+        if (endInput.value && endInput.value < val) {
+            endInput.value = val;
+        }
+    });
+});
+</script>
+
+</body>
+</html>

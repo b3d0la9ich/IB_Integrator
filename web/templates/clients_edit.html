@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование клиента</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/audit">Аудит</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <div class="form-card form-card-wide">
+        <h2>Редактирование клиента</h2>
+        <p class="muted" style="margin-top:4px;margin-bottom:14px;font-size:13px;">
+            Обнови контактные данные и описание организации-заказчика.
+        </p>
+
+        {{ if .error }}
+            <div class="error">{{ .error }}</div>
+        {{ end }}
+
+        <form method="post" action="/clients/{{ .client.ID }}/edit">
+            <div class="form-vertical">
+                <label>Название организации *
+                    <input type="text" name="name" required
+                           value="{{ .client.Name }}">
+                </label>
+
+                <label>Тип организации
+                    <select name="org_type" id="orgTypeSelect">
+                        <option value="">— выберите тип —</option>
+                        <option value="Банк/финансы" {{ if eq .client.OrgType "Банк/финансы" }}selected{{ end }}>Банк / финансовая организация</option>
+                        <option value="Госорган" {{ if eq .client.OrgType "Госорган" }}selected{{ end }}>Госорган / муниципалитет</option>
+                        <option value="Образование" {{ if eq .client.OrgType "Образование" }}selected{{ end }}>Образовательная организация</option>
+                        <option value="Промышленность/КИИ" {{ if eq .client.OrgType "Промышленность/КИИ" }}selected{{ end }}>Промышленность / объекты КИИ</option>
+                        <option value="IT/Телеком" {{ if eq .client.OrgType "IT/Телеком" }}selected{{ end }}>IT / телеком</option>
+                        <option value="Ритейл/услуги" {{ if eq .client.OrgType "Ритейл/услуги" }}selected{{ end }}>Ритейл / услуги / e-commerce</option>
+                        <option value="Медицина" {{ if eq .client.OrgType "Медицина" }}selected{{ end }}>Медицина / клиника</option>
+                        <option value="Другое" {{ if eq .client.OrgType "Другое" }}selected{{ end }}>Другое</option>
+                    </select>
+                </label>
+
+                <label>ИНН
+                    <input type="text" name="inn" value="{{ .client.INN }}">
+                </label>
+
+                <label>Отрасль
+                    <input type="text" name="industry" value="{{ .client.Industry }}">
+                </label>
+
+                <label>Email контактного лица
+                    <input type="email" name="contact_email" value="{{ .client.ContactEmail }}">
+                </label>
+
+                <label>Телефон контактного лица
+                    <input type="text" name="contact_phone" value="{{ .client.ContactPhone }}">
+                </label>
+
+                <label>Комментарий
+                    <textarea name="notes">{{ .client.Notes }}</textarea>
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">Сохранить</button>
+                <a href="/clients/{{ .client.ID }}" class="btn secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

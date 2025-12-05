@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Новый клиент</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/audit">Аудит</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <div class="form-card form-card-wide">
+        <h2>Создание клиента</h2>
+        <p class="muted" style="margin-top:4px;margin-bottom:14px;font-size:13px;">
+            Карточка организации-заказчика интегратора по ИБ: контактные данные и базовая оценка риска.
+        </p>
+
+        {{ if .error }}
+            <div class="error">{{ .error }}</div>
+        {{ end }}
+
+        <form method="post" action="/clients/new">
+            <div class="form-vertical">
+                <label>Название организации *
+                    <input type="text" name="name" required placeholder="ООО «Безопасность+»">
+                </label>
+
+                <!-- ТИП ОРГАНИЗАЦИИ — SELECT -->
+                <label>Тип организации
+                    <select name="org_type" id="orgTypeSelect">
+                        <option value="">— выберите тип —</option>
+                        <option value="Банк/финансы">Банк / финансовая организация</option>
+                        <option value="Госорган">Госорган / муниципалитет</option>
+                        <option value="Образование">Образовательная организация</option>
+                        <option value="Промышленность/КИИ">Промышленность / объекты КИИ</option>
+                        <option value="IT/Телеком">IT / телеком</option>
+                        <option value="Ритейл/услуги">Ритейл / услуги / e-commerce</option>
+                        <option value="Медицина">Медицина / клиника</option>
+                        <option value="Другое">Другое</option>
+                    </select>
+                </label>
+
+                <label>ИНН
+                    <input type="text" name="inn" placeholder="10–12 цифр">
+                </label>
+
+                <!-- ОТРАСЛЬ — SELECT, ЗАВИСИТ ОТ ТИПА -->
+                <label>Отрасль
+                    <select name="industry" id="industrySelect">
+                        <option value="">— выберите отрасль —</option>
+                        <!-- варианты подставляются скриптом ниже -->
+                    </select>
+                </label>
+
+                <label>Email контактного лица
+                    <input type="email" name="contact_email" placeholder="security@company.local">
+                </label>
+
+                <label>Телефон контактного лица
+                    <input type="text" name="contact_phone" placeholder="+7 (999) 123-45-67">
+                </label>
+
+                <label>Комментарий
+                    <textarea name="notes" placeholder="Особенности инфраструктуры, статус по ИБ, критичные системы и т.п."></textarea>
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">Создать</button>
+                <a href="/clients" class="btn secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script>
+// Связка «тип организации -> список отраслей»
+const industryOptions = {
+    "Банк/финансы": [
+        "Банк",
+        "Микрофинансовая организация",
+        "Платёжный сервис",
+        "Страховая компания"
+    ],
+    "Госорган": [
+        "ФОИВ / федеральное министерство",
+        "Региональный орган власти",
+        "Муниципалитет",
+        "Подведомственное учреждение"
+    ],
+    "Образование": [
+        "ВУЗ",
+        "Колледж / техникум",
+        "Школа / лицей",
+        "Образовательный центр"
+    ],
+    "Промышленность/КИИ": [
+        "Промышленное предприятие",
+        "Энергетика",
+        "Транспорт / логистика",
+        "Другое КИИ"
+    ],
+    "IT/Телеком": [
+        "Разработчик ПО",
+        "Дата-центр / облачный провайдер",
+        "Оператор связи",
+        "Хостинг / SaaS"
+    ],
+    "Ритейл/услуги": [
+        "Ритейл / сеть магазинов",
+        "Интернет-магазин / e-commerce",
+        "Сфера услуг",
+        "HoReCa"
+    ],
+    "Медицина": [
+        "Частная клиника",
+        "Госпиталь / больница",
+        "Диагностический центр",
+        "Страховая медицина"
+    ],
+    "Другое": [
+        "Другое / смешанный профиль"
+    ]
+};
+
+const orgTypeSelect = document.getElementById("orgTypeSelect");
+const industrySelect = document.getElementById("industrySelect");
+
+function rebuildIndustryOptions(typeValue) {
+    // очищаем список
+    industrySelect.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "— выберите отрасль —";
+    industrySelect.appendChild(placeholder);
+
+    const list = industryOptions[typeValue] || [];
+    list.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        industrySelect.appendChild(opt);
+    });
+}
+
+if (orgTypeSelect && industrySelect) {
+    orgTypeSelect.addEventListener("change", function () {
+        rebuildIndustryOptions(this.value);
+    });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>IB Integrator — Главная</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="logo">IB Integrator</div>
+    <nav>
+        {{ if .isAuthed }}
+            <a href="/clients">Клиенты</a>
+            <a href="/assets">Объекты защиты</a>
+            <a href="/projects">Проекты</a>
+            <a href="/audit">Аудит</a>
+            <a href="/logout">Выход</a>
+        {{ else }}
+            <a href="/login">Войти</a>
+            <a href="/register">Регистрация</a>
+        {{ end }}
+    </nav>
+</header>
+
+<main class="content">
+    <div class="hero">
+        <div class="hero-text">
+            <h1>IB Integrator</h1>
+            <p class="hero-subtitle">
+                Внутренняя система интегратора по информационной безопасности для ведения
+                справочника клиентов, объектов защиты и проектов по ИБ.
+            </p>
+
+            <ul class="hero-list">
+                <li>Учёт клиентов и контактов по ИБ</li>
+                <li>Объекты защиты: ИСПДн, ГИС, АСУ ТП, корпоративные сети</li>
+                <li>Проекты: аудит, внедрение СЗИ, пентесты, сопровождение</li>
+                <li>Роли пользователей, маскирование контактов, журнал аудита</li>
+            </ul>
+
+            <div class="hero-actions">
+                <a href="/login" class="btn">Войти</a>
+                <a href="/register" class="btn secondary">Регистрация</a>
+            </div>
+        </div>
+
+        <div class="hero-aside">
+            <div class="card">
+                <h3>Для чего система?</h3>
+                <p>
+                    Система моделирует работу интегратора по ИБ: позволяет хранить данные
+                    о клиентах, их объектах защиты и связанных с ними проектах по информационной безопасности.
+                </p>
+                <p>
+                    В учебных целях демонстрируются: разграничение ролей, проверки
+                    корректности ввода, контроль статусов проектов и аудит действий пользователей.
+                </p>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>
