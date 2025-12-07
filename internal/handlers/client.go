@@ -84,45 +84,6 @@ func CreateClient(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/clients")
 }
 
-//
-// ДЕТАЛЬ / РЕДАКТИРОВАНИЕ
-//
-
-func ShowClientDetail(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
-		c.String(http.StatusBadRequest, "Некорректный ID клиента")
-		return
-	}
-
-	var client models.Client
-	if err := database.DB.First(&client, id).Error; err != nil {
-		c.String(http.StatusNotFound, "Клиент не найден")
-		return
-	}
-
-	var assets []models.Asset
-	database.DB.Where("client_id = ?", client.ID).Order("name asc").Find(&assets)
-
-	var projects []models.Project
-	database.DB.
-		Preload("Asset").
-		Where("client_id = ?", client.ID).
-		Order("created_at desc").
-		Find(&projects)
-
-	sess := sessions.Default(c)
-	roleStr, _ := sess.Get("role").(string)
-	role := models.UserRole(roleStr)
-
-	c.HTML(http.StatusOK, "client_detail.html", gin.H{
-		"client":   client,
-		"assets":   assets,
-		"projects": projects,
-		"IsAdmin":  role == models.RoleAdmin,
-	})
-}
 
 // форма редактирования
 func ShowEditClient(c *gin.Context) {
