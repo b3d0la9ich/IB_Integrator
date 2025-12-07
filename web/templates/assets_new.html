@@ -13,7 +13,10 @@
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
         <a href="/projects">Проекты</a>
-        <a href="/audit">Аудит</a>
+        {{ if and .CurrentUser (eq .CurrentUser.Role "admin") }}
+            <a href="/audit">Аудит</a>
+        {{ end }}
+
         <a href="/logout">Выход</a>
     </nav>
 
