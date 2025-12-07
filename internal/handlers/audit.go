@@ -17,7 +17,7 @@ func ListAuditLogs(c *gin.Context) {
 		Limit(200).
 		Find(&logs)
 
-	c.HTML(http.StatusOK, "audit_list.html", gin.H{
+	render(c, http.StatusOK, "audit_list.html", gin.H{
 		"logs": logs,
 	})
 }

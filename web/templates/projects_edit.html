@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Создание проекта по ИБ</title>
+    <title>Редактирование проекта по ИБ</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -28,26 +28,30 @@
 
 
 <main class="content">
-    <h2>Создание проекта по ИБ</h2>
+    <h2>Редактирование проекта по ИБ</h2>
     {{ if .error }}
         <div class="error">{{ .error }}</div>
     {{ end }}
 
-    <form method="post" action="/projects/new">
+    <form method="post" action="/projects/{{ .project.ID }}/edit">
         <div class="grid-2">
             <div class="card">
                 <h3>Основная информация</h3>
 
                 <div class="form-grid">
                     <label class="full">Название проекта *
-                        <input type="text" name="name" required placeholder="Аудит ИБ, внедрение СЗИ, пентест...">
+                        <input type="text" name="name" required
+                               value="{{ .project.Title }}">
                     </label>
 
                     <label>Клиент *
                         <select name="client_id" required>
                             <option value="">-- выберите клиента --</option>
                             {{ range .clients }}
-                                <option value="{{ .ID }}">{{ .Name }}</option>
+                                <option value="{{ .ID }}"
+                                        {{ if eq .ID $.project.ClientID }}selected{{ end }}>
+                                    {{ .Name }}
+                                </option>
                             {{ end }}
                         </select>
                     </label>
@@ -56,18 +60,21 @@
                         <select name="asset_id">
                             <option value="">-- не выбран --</option>
                             {{ range .assets }}
-                                <option value="{{ .ID }}">{{ .Name }}</option>
+                                <option value="{{ .ID }}"
+                                        {{ if eq .ID $.project.AssetID }}selected{{ end }}>
+                                    {{ .Name }}
+                                </option>
                             {{ end }}
                         </select>
                     </label>
 
                     <label>Тип проекта *
                         <select name="project_type" required>
-                            <option value="audit">Аудит ИБ</option>
-                            <option value="szi_deploy">Внедрение СЗИ</option>
-                            <option value="pentest">Пентест</option>
-                            <option value="maintenance">Сопровождение</option>
-                            <option value="compliance">Соответствие требованиям</option>
+                            <option value="audit"       {{ if eq (printf "%s" .project.Type) "audit" }}selected{{ end }}>Аудит ИБ</option>
+                            <option value="szi_deploy"  {{ if eq (printf "%s" .project.Type) "szi_deploy" }}selected{{ end }}>Внедрение СЗИ</option>
+                            <option value="pentest"     {{ if eq (printf "%s" .project.Type) "pentest" }}selected{{ end }}>Пентест</option>
+                            <option value="maintenance" {{ if eq (printf "%s" .project.Type) "maintenance" }}selected{{ end }}>Сопровождение</option>
+                            <option value="compliance"  {{ if eq (printf "%s" .project.Type) "compliance" }}selected{{ end }}>Соответствие требованиям</option>
                         </select>
                     </label>
                 </div>
@@ -81,28 +88,33 @@
                         <select name="engineer_id">
                             <option value="">-- не назначен --</option>
                             {{ range .engineers }}
-                                <option value="{{ .ID }}">{{ .Username }}</option>
+                                <option value="{{ .ID }}"
+                                        {{ if eq .ID $.project.EngineerID }}selected{{ end }}>
+                                    {{ .Username }}
+                                </option>
                             {{ end }}
                         </select>
                     </label>
 
-                    <label>Планируемая дата начала
-                        <input type="date" name="planned_start" id="startDate">
+                    <label class="full">Планируемая дата начала
+                        <input type="date" name="planned_start" id="startDate"
+                               {{ if .project.PlannedStart }}value="{{ .project.PlannedStart.Format "2006-01-02" }}"{{ end }}>
                     </label>
 
-                    <label>Планируемая дата окончания
-                        <input type="date" name="planned_end" id="endDate">
+                    <label class="full">Планируемая дата окончания
+                        <input type="date" name="planned_end" id="endDate"
+                               {{ if .project.PlannedEnd }}value="{{ .project.PlannedEnd.Format "2006-01-02" }}"{{ end }}>
                     </label>
 
                     <label class="full">Краткое описание работ
-                        <textarea name="description" placeholder="Что делаем в рамках проекта: этапы, цель, ключевые задачи."></textarea>
+                        <textarea name="description" placeholder="Что делаем в рамках проекта: этапы, цель, ключевые задачи.">{{ .project.Description }}</textarea>
                     </label>
                 </div>
             </div>
         </div>
 
         <div class="form-actions">
-            <button type="submit">Создать</button>
+            <button type="submit">Сохранить</button>
             <a href="/projects" class="btn secondary">Отмена</a>
         </div>
     </form>
@@ -113,18 +125,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const startInput = document.getElementById("startDate");
     const endInput = document.getElementById("endDate");
 
-    if (!startInput || !endInput) {
-        return;
-    }
+    if (!startInput || !endInput) return;
 
-    // сегодняшняя дата в формате YYYY-MM-DD
     const today = new Date().toISOString().split("T")[0];
-
-    // нельзя выбирать даты в прошлом
     startInput.min = today;
     endInput.min = today;
 
-    // дата окончания не может быть раньше даты начала
     startInput.addEventListener("change", () => {
         const val = startInput.value || today;
         endInput.min = val;

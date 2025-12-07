@@ -19,7 +19,7 @@ func ShowClientDetail(c *gin.Context) {
 	}
 
 	var client models.Client
-	// Грузим клиента сразу с объектами защиты (и проектами на будущее)
+	// Грузим клиента сразу с объектами защиты и проектами
 	if err := database.DB.
 		Preload("Assets").
 		Preload("Projects").
@@ -29,7 +29,7 @@ func ShowClientDetail(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "client_detail.html", gin.H{
+	render(c, http.StatusOK, "client_detail.html", gin.H{
 		"client": client,
 	})
 }

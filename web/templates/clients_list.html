@@ -8,19 +8,33 @@
 <body>
 <header class="topbar">
     <div class="logo">IB Integrator</div>
+
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
         <a href="/projects">Проекты</a>
-        <a href="/audit">Аудит</a>
+        {{ if and .CurrentUser (eq .CurrentUser.Role "admin") }}
+            <a href="/audit">Аудит</a>
+        {{ end }}
         <a href="/logout">Выход</a>
     </nav>
+
+    <div class="user-info">
+        {{ if .CurrentUser }}
+            👤 {{ .CurrentUser.Username }} ({{ .CurrentUser.Role }})
+        {{ end }}
+    </div>
 </header>
+
 
 <main class="content">
     <div class="page-header">
         <h2>Клиенты</h2>
-        <a class="btn" href="/clients/new">Новый клиент</a>
+
+        {{/* кнопку видят только admin и sales */}}
+        {{ if or $.IsAdmin $.IsSales }}
+            <a class="btn" href="/clients/new">Новый клиент</a>
+        {{ end }}
     </div>
 
     {{ if not .clients }}
@@ -39,7 +53,11 @@
             <tr>
                 <td><a href="/clients/{{ .ID }}">{{ .Name }}</a></td>
                 <td>{{ .OrgType }}</td>
-                <td>{{ .ContactEmail }} / {{ .ContactPhone }}</td>
+                <td>
+                    {{ if .ContactEmail }}{{ maskEmail .ContactEmail }}{{ end }}
+                    {{ if and .ContactEmail .ContactPhone }} / {{ end }}
+                    {{ if .ContactPhone }}{{ maskPhone .ContactPhone }}{{ end }}
+                </td>
             </tr>
         {{ end }}
         </tbody>

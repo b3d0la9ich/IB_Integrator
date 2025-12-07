@@ -17,9 +17,8 @@ import (
 // СПИСОК ПРОЕКТОВ
 //
 
-// Список проектов с фильтрами
+// Список проектов + фильтры
 func ListProjects(c *gin.Context) {
-	// достаём роль из сессии
 	sess := sessions.Default(c)
 	roleStr, _ := sess.Get("role").(string)
 	role := models.UserRole(roleStr)
@@ -53,14 +52,13 @@ func ListProjects(c *gin.Context) {
 	var clients []models.Client
 	database.DB.Order("name asc").Find(&clients)
 
-	c.HTML(http.StatusOK, "projects_list.html", gin.H{
+	render(c, http.StatusOK, "projects_list.html", gin.H{
 		"projects":       projects,
 		"clients":        clients,
 		"FilterClientID": clientIDStr,
 		"FilterType":     typeStr,
 		"FilterStatus":   statusStr,
 
-		// флаги для шаблона
 		"IsAdmin":    role == models.RoleAdmin,
 		"IsSales":    role == models.RoleSales,
 		"IsEngineer": role == models.RoleEngineer,
@@ -68,7 +66,7 @@ func ListProjects(c *gin.Context) {
 }
 
 //
-// ФОРМА СОЗДАНИЯ ПРОЕКТА
+// СОЗДАНИЕ ПРОЕКТА
 //
 
 func ShowNewProject(c *gin.Context) {
@@ -78,21 +76,16 @@ func ShowNewProject(c *gin.Context) {
 	var assets []models.Asset
 	database.DB.Order("name asc").Find(&assets)
 
-	// инженеры по ИБ (роль engineer)
 	var engineers []models.User
 	database.DB.Where("role = ?", models.RoleEngineer).Order("username asc").Find(&engineers)
 
-	c.HTML(http.StatusOK, "projects_new.html", gin.H{
+	render(c, http.StatusOK, "projects_new.html", gin.H{
 		"clients":   clients,
 		"assets":    assets,
 		"engineers": engineers,
 		"error":     "",
 	})
 }
-
-//
-// СОЗДАНИЕ ПРОЕКТА
-//
 
 func CreateProject(c *gin.Context) {
 	title := strings.TrimSpace(c.PostForm("name"))
@@ -109,14 +102,12 @@ func CreateProject(c *gin.Context) {
 		return
 	}
 
-	// клиент обязателен
 	cid, err := strconv.Atoi(clientIDStr)
 	if err != nil || cid <= 0 {
 		renderProjectError(c, "Выберите клиента")
 		return
 	}
 
-	// тип проверяем по enum
 	ptype := models.ProjectType(projectTypeStr)
 	switch ptype {
 	case models.ProjectAudit,
@@ -137,33 +128,32 @@ func CreateProject(c *gin.Context) {
 
 	var assetID uint
 	if assetIDStr != "" {
-		if aid, err := strconv.Atoi(assetIDStr); err == nil && aid > 0 {
+		if aid, err := strconv.Atoi(assetIDStr); err == nil {
 			assetID = uint(aid)
 		}
 	}
 
 	var engineerID uint
 	if engineerIDStr != "" {
-		if eid, err := strconv.Atoi(engineerIDStr); err == nil && eid > 0 {
+		if eid, err := strconv.Atoi(engineerIDStr); err == nil {
 			engineerID = uint(eid)
 		}
 	}
 
-	var plannedStartPtr *time.Time
+	var plannedStart *time.Time
 	if plannedStartStr != "" {
 		if t, err := time.Parse("2006-01-02", plannedStartStr); err == nil {
-			plannedStartPtr = &t
+			plannedStart = &t
 		}
 	}
 
-	var plannedEndPtr *time.Time
+	var plannedEnd *time.Time
 	if plannedEndStr != "" {
 		if t, err := time.Parse("2006-01-02", plannedEndStr); err == nil {
-			plannedEndPtr = &t
+			plannedEnd = &t
 		}
 	}
 
-	// sales — это текущий пользователь (admin/sales)
 	sess := sessions.Default(c)
 	var salesID uint
 	if uid, ok := sess.Get("user_id").(uint); ok {
@@ -177,14 +167,14 @@ func CreateProject(c *gin.Context) {
 		Type:         ptype,
 		Status:       models.StatusPlanned,
 		Description:  desc,
-		PlannedStart: plannedStartPtr,
-		PlannedEnd:   plannedEndPtr,
+		PlannedStart: plannedStart,
+		PlannedEnd:   plannedEnd,
 		SalesID:      salesID,
 		EngineerID:   engineerID,
 	}
 
 	if err := database.DB.Create(&project).Error; err != nil {
-		renderProjectError(c, "Ошибка сохранения проекта в БД")
+		renderProjectError(c, "Ошибка сохранения проекта")
 		return
 	}
 
@@ -193,101 +183,6 @@ func CreateProject(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusFound, "/projects")
-}
-
-//
-// СМЕНА СТАТУСА ПРОЕКТА (вариант B)
-//
-
-func ChangeProjectStatus(c *gin.Context) {
-	idStr := c.Param("id")
-	newStatusStr := c.PostForm("status")
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
-		c.String(http.StatusBadRequest, "Некорректный идентификатор проекта")
-		return
-	}
-
-	var project models.Project
-	if err := database.DB.First(&project, id).Error; err != nil {
-		c.String(http.StatusNotFound, "Проект не найден")
-		return
-	}
-
-	status := models.ProjectStatus(newStatusStr)
-	switch status {
-	case models.StatusPlanned,
-		models.StatusInProgress,
-		models.StatusOnApproval,
-		models.StatusFinished,
-		models.StatusCancelled:
-	default:
-		c.String(http.StatusBadRequest, "Некорректный статус проекта")
-		return
-	}
-
-	// роль из сессии
-	sess := sessions.Default(c)
-	roleStr, _ := sess.Get("role").(string)
-	role := models.UserRole(roleStr)
-
-	if !canChangeProjectStatus(role, project.Status, status) {
-		c.String(http.StatusForbidden, "Недостаточно прав для смены статуса проекта")
-		return
-	}
-
-	now := time.Now()
-	if status == models.StatusFinished {
-		project.ActualEnd = &now
-	}
-
-	project.Status = status
-
-	if err := database.DB.Save(&project).Error; err != nil {
-		c.String(http.StatusInternalServerError, "Ошибка обновления статуса проекта")
-		return
-	}
-
-	if uid, ok := sess.Get("user_id").(uint); ok {
-		database.CreateAuditLog(uid, "project", project.ID, "status_change",
-			"Статус проекта изменён на "+string(status))
-	}
-
-	c.Redirect(http.StatusFound, "/projects")
-}
-
-// Правила смены статусов (вариант B)
-func canChangeProjectStatus(role models.UserRole, current, next models.ProjectStatus) bool {
-	if current == next {
-		return false
-	}
-
-	switch role {
-	case models.RoleAdmin:
-		// админ может всё
-		return true
-
-	case models.RoleSales:
-		switch current {
-		case models.StatusPlanned:
-			// sales: запускает или отменяет
-			return next == models.StatusInProgress || next == models.StatusCancelled
-		case models.StatusOnApproval:
-			// sales: после согласования либо назад в работу, либо отмена
-			return next == models.StatusInProgress || next == models.StatusCancelled
-		default:
-			return false
-		}
-
-	case models.RoleEngineer:
-		// инженер: только переводит "в работе" → "на согласование"
-		return current == models.StatusInProgress && next == models.StatusOnApproval
-
-	default:
-		// viewer и прочие — только смотрят
-		return false
-	}
 }
 
 func renderProjectError(c *gin.Context, msg string) {
@@ -300,10 +195,323 @@ func renderProjectError(c *gin.Context, msg string) {
 	var engineers []models.User
 	database.DB.Where("role = ?", models.RoleEngineer).Order("username asc").Find(&engineers)
 
-	c.HTML(http.StatusBadRequest, "projects_new.html", gin.H{
+	render(c, http.StatusBadRequest, "projects_new.html", gin.H{
 		"error":     msg,
 		"clients":   clients,
 		"assets":    assets,
 		"engineers": engineers,
+	})
+}
+
+//
+// СМЕНА СТАТУСА
+//
+
+func ChangeProjectStatus(c *gin.Context) {
+	idStr := c.Param("id")
+	statusStr := c.PostForm("status")
+
+	pid, err := strconv.Atoi(idStr)
+	if err != nil || pid <= 0 {
+		c.String(http.StatusBadRequest, "Некорректный ID проекта")
+		return
+	}
+
+	var project models.Project
+	if err := database.DB.First(&project, pid).Error; err != nil {
+		c.String(http.StatusNotFound, "Проект не найден")
+		return
+	}
+
+	newStatus := models.ProjectStatus(statusStr)
+
+	switch newStatus {
+	case models.StatusPlanned,
+		models.StatusInProgress,
+		models.StatusOnApproval,
+		models.StatusFinished,
+		models.StatusCancelled:
+	default:
+		c.String(http.StatusBadRequest, "Некорректный статус")
+		return
+	}
+
+	sess := sessions.Default(c)
+	roleStr, _ := sess.Get("role").(string)
+	role := models.UserRole(roleStr)
+
+	if !canChangeProjectStatus(role, project.Status, newStatus) {
+		c.String(http.StatusForbidden, "Недостаточно прав")
+		return
+	}
+
+	if newStatus == models.StatusFinished {
+		now := time.Now()
+		project.ActualEnd = &now
+	}
+
+	project.Status = newStatus
+
+	if err := database.DB.Save(&project).Error; err != nil {
+		c.String(http.StatusInternalServerError, "Ошибка обновления статуса")
+		return
+	}
+
+	if uid, ok := sess.Get("user_id").(uint); ok {
+		database.CreateAuditLog(uid, "project", project.ID, "status_change",
+			"Статус изменён на: "+string(newStatus))
+	}
+
+	c.Redirect(http.StatusFound, "/projects")
+}
+
+// логика ролей
+func canChangeProjectStatus(role models.UserRole, current, next models.ProjectStatus) bool {
+	if current == next {
+		return false
+	}
+
+	switch role {
+
+	case models.RoleAdmin:
+		return true
+
+	case models.RoleSales:
+		switch current {
+		case models.StatusPlanned:
+			return next == models.StatusInProgress || next == models.StatusCancelled
+		case models.StatusOnApproval:
+			return next == models.StatusInProgress || next == models.StatusCancelled
+		}
+		return false
+
+	case models.RoleEngineer:
+		return current == models.StatusInProgress && next == models.StatusOnApproval
+
+	default:
+		return false
+	}
+}
+
+//
+// РЕДАКТИРОВАНИЕ ПРОЕКТА
+//
+
+func ShowEditProject(c *gin.Context) {
+	sess := sessions.Default(c)
+	roleStr, _ := sess.Get("role").(string)
+	if models.UserRole(roleStr) != models.RoleAdmin {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	id := c.Param("id")
+	var project models.Project
+	if err := database.DB.Preload("Client").Preload("Asset").First(&project, id).Error; err != nil {
+		c.String(http.StatusNotFound, "Проект не найден")
+		return
+	}
+
+	var clients []models.Client
+	database.DB.Order("name asc").Find(&clients)
+
+	var assets []models.Asset
+	database.DB.Order("name asc").Find(&assets)
+
+	var engineers []models.User
+	database.DB.Where("role = ?", models.RoleEngineer).Order("username asc").Find(&engineers)
+
+	render(c, http.StatusOK, "projects_edit.html", gin.H{
+		"project":   project,
+		"clients":   clients,
+		"assets":    assets,
+		"engineers": engineers,
+		"error":     "",
+	})
+}
+
+func UpdateProject(c *gin.Context) {
+	sess := sessions.Default(c)
+	roleStr, _ := sess.Get("role").(string)
+	if models.UserRole(roleStr) != models.RoleAdmin {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	id := c.Param("id")
+
+	var project models.Project
+	if err := database.DB.First(&project, id).Error; err != nil {
+		c.String(http.StatusNotFound, "Проект не найден")
+		return
+	}
+
+	title := strings.TrimSpace(c.PostForm("name"))
+	clientIDStr := c.PostForm("client_id")
+	assetIDStr := c.PostForm("asset_id")
+	projectType := c.PostForm("project_type")
+	engineerIDStr := c.PostForm("engineer_id")
+	plannedStartStr := c.PostForm("planned_start")
+	plannedEndStr := c.PostForm("planned_end")
+	description := strings.TrimSpace(c.PostForm("description"))
+
+	if len(title) < 3 {
+		renderProjectEditError(c, project, "Название слишком короткое")
+		return
+	}
+
+	// клиент обязателен
+	var client models.Client
+	if err := database.DB.First(&client, clientIDStr).Error; err != nil {
+		renderProjectEditError(c, project, "Клиент не найден")
+		return
+	}
+
+	// объект защиты
+	var assetID uint
+	if assetIDStr != "" {
+		var asset models.Asset
+		if err := database.DB.First(&asset, assetIDStr).Error; err != nil {
+			renderProjectEditError(c, project, "Объект защиты не найден")
+			return
+		}
+		assetID = asset.ID
+	}
+
+	// инженер
+	var engineerID uint
+	if engineerIDStr != "" {
+		var engineer models.User
+		if err := database.DB.First(&engineer, engineerIDStr).Error; err != nil {
+			renderProjectEditError(c, project, "Инженер не найден")
+			return
+		}
+		engineerID = engineer.ID
+	}
+
+	var plannedStart *time.Time
+	if plannedStartStr != "" {
+		t, err := time.Parse("2006-01-02", plannedStartStr)
+		if err != nil {
+			renderProjectEditError(c, project, "Неверная дата начала")
+			return
+		}
+		plannedStart = &t
+	}
+
+	var plannedEnd *time.Time
+	if plannedEndStr != "" {
+		t, err := time.Parse("2006-01-02", plannedEndStr)
+		if err != nil {
+			renderProjectEditError(c, project, "Неверная дата окончания")
+			return
+		}
+		plannedEnd = &t
+	}
+
+	project.Title = title
+	project.ClientID = client.ID
+	project.Description = description
+	project.Type = models.ProjectType(projectType)
+	project.PlannedStart = plannedStart
+	project.PlannedEnd = plannedEnd
+	project.AssetID = assetID
+	project.EngineerID = engineerID
+
+	if err := database.DB.Save(&project).Error; err != nil {
+		renderProjectEditError(c, project, "Ошибка сохранения проекта")
+		return
+	}
+
+	if uid, ok := sess.Get("user_id").(uint); ok {
+		database.CreateAuditLog(uid, "project", project.ID, "update", "Проект обновлён: "+project.Title)
+	}
+
+	c.Redirect(http.StatusFound, "/projects")
+}
+
+func renderProjectEditError(c *gin.Context, project models.Project, msg string) {
+	var clients []models.Client
+	database.DB.Order("name asc").Find(&clients)
+
+	var assets []models.Asset
+	database.DB.Order("name asc").Find(&assets)
+
+	var engineers []models.User
+	database.DB.Where("role = ?", models.RoleEngineer).Order("username asc").Find(&engineers)
+
+	render(c, http.StatusBadRequest, "projects_edit.html", gin.H{
+		"error":     msg,
+		"project":   project,
+		"clients":   clients,
+		"assets":    assets,
+		"engineers": engineers,
+	})
+}
+
+//
+// УДАЛЕНИЕ ПРОЕКТА
+//
+
+func DeleteProject(c *gin.Context) {
+	sess := sessions.Default(c)
+	roleStr, _ := sess.Get("role").(string)
+	if models.UserRole(roleStr) != models.RoleAdmin {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.String(http.StatusBadRequest, "Некорректный ID")
+		return
+	}
+
+	var project models.Project
+	if err := database.DB.First(&project, id).Error; err != nil {
+		c.String(http.StatusNotFound, "Проект не найден")
+		return
+	}
+
+	if err := database.DB.Delete(&project).Error; err != nil {
+		c.String(http.StatusInternalServerError, "Ошибка удаления")
+		return
+	}
+
+	if uid, ok := sess.Get("user_id").(uint); ok {
+		database.CreateAuditLog(uid, "project", project.ID, "delete", "Удалён проект: "+project.Title)
+	}
+
+	c.Redirect(http.StatusFound, "/projects")
+}
+
+//
+// ИСТОРИЯ ПРОЕКТА
+//
+
+func ShowProjectHistory(c *gin.Context) {
+	idStr := c.Param("id")
+	pid, err := strconv.Atoi(idStr)
+	if err != nil || pid <= 0 {
+		c.String(http.StatusBadRequest, "Некорректный ID")
+		return
+	}
+
+	var project models.Project
+	if err := database.DB.First(&project, pid).Error; err != nil {
+		c.String(http.StatusNotFound, "Проект не найден")
+		return
+	}
+
+	var logs []models.AuditLog
+	database.DB.Where("entity = ? AND entity_id = ?", "project", pid).
+		Preload("User").
+		Order("created_at asc").
+		Find(&logs)
+
+	render(c, http.StatusOK, "project_history.html", gin.H{
+		"project": project,
+		"logs":    logs,
 	})
 }

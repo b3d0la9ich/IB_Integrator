@@ -8,6 +8,7 @@
 <body>
 <header class="topbar">
     <div class="logo">IB Integrator</div>
+
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
@@ -15,12 +16,21 @@
         <a href="/audit">Аудит</a>
         <a href="/logout">Выход</a>
     </nav>
+
+    <div class="user-info">
+        {{ if .CurrentUser }}
+            👤 {{ .CurrentUser.Username }} ({{ .CurrentUser.Role }})
+        {{ end }}
+    </div>
 </header>
+
 
 <main class="content">
     <div class="page-header">
         <h2>Объекты защиты</h2>
-        <a class="btn" href="/assets/new">Новый объект</a>
+        {{ if eq .role "admin" }}
+            <a class="btn" href="/assets/new">Новый объект</a>
+        {{ end }}
     </div>
 
     {{ if not .assets }}
@@ -49,6 +59,12 @@
                 {{ if .Description }}
                     <div class="asset-description">
                         {{ .Description }}
+                    </div>
+                {{ end }}
+
+                {{ if eq $.role "admin" }}
+                    <div class="card-actions">
+                        <a class="btn small" href="/assets/{{ .ID }}/edit">Редактировать</a>
                     </div>
                 {{ end }}
             </div>

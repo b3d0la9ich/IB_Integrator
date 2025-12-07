@@ -8,14 +8,25 @@
 <body>
 <header class="topbar">
     <div class="logo">IB Integrator</div>
+
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
         <a href="/projects">Проекты</a>
-        <a href="/audit">Аудит</a>
+        {{ if and .CurrentUser (eq .CurrentUser.Role "admin") }}
+            <a href="/audit">Аудит</a>
+        {{ end }}
+
         <a href="/logout">Выход</a>
     </nav>
+
+    <div class="user-info">
+        {{ if .CurrentUser }}
+            👤 {{ .CurrentUser.Username }} ({{ .CurrentUser.Role }})
+        {{ end }}
+    </div>
 </header>
+
 
 <main class="content">
     <h2>Журнал аудита</h2>
@@ -29,18 +40,18 @@
             <th>Время</th>
             <th>Пользователь</th>
             <th>Действие</th>
-            <th>Таблица</th>
-            <th>Ключ</th>
+            <th>Сущность</th>
+            <th>Описание</th>
         </tr>
         </thead>
         <tbody>
         {{ range .logs }}
             <tr>
-                <td>{{ .CreatedAt }}</td>
-                <td>{{ .Username }}</td>
+                <td>{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</td>
+                <td>{{ if .User }}{{ .User.Username }}{{ else }}—{{ end }}</td>
                 <td>{{ .Action }}</td>
-                <td>{{ .TableName }}</td>
-                <td>{{ .RecordPK }}</td>
+                <td>{{ .Entity }}</td>
+                <td>{{ .Details }}</td>
             </tr>
         {{ end }}
         </tbody>

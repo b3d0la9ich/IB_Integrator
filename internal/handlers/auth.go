@@ -13,7 +13,7 @@ import (
 )
 
 func ShowRegister(c *gin.Context) {
-	c.HTML(http.StatusOK, "register.html", gin.H{"error": ""})
+	render(c, http.StatusOK, "register.html", gin.H{"error": ""})
 }
 
 type registerForm struct {
@@ -25,13 +25,13 @@ type registerForm struct {
 func Register(c *gin.Context) {
 	var form registerForm
 	if err := c.ShouldBind(&form); err != nil {
-		c.HTML(http.StatusBadRequest, "register.html", gin.H{"error": "Некорректные данные"})
+		render(c, http.StatusBadRequest, "register.html", gin.H{"error": "Некорректные данные"})
 		return
 	}
 
 	form.Username = strings.TrimSpace(form.Username)
 	if len(form.Username) < 3 || len(form.Password) < 6 {
-		c.HTML(http.StatusBadRequest, "register.html", gin.H{"error": "Слишком короткий логин или пароль"})
+		render(c, http.StatusBadRequest, "register.html", gin.H{"error": "Слишком короткий логин или пароль"})
 		return
 	}
 
@@ -42,13 +42,13 @@ func Register(c *gin.Context) {
 	case models.RoleSales, models.RoleEngineer, models.RoleViewer:
 		// ок
 	default:
-		c.HTML(http.StatusBadRequest, "register.html", gin.H{"error": "Неверная роль"})
+		render(c, http.StatusBadRequest, "register.html", gin.H{"error": "Неверная роль"})
 		return
 	}
 
 	var existing models.User
 	if err := database.DB.Where("username = ?", form.Username).First(&existing).Error; err == nil {
-		c.HTML(http.StatusBadRequest, "register.html", gin.H{"error": "Пользователь уже существует"})
+		render(c, http.StatusBadRequest, "register.html", gin.H{"error": "Пользователь уже существует"})
 		return
 	}
 
@@ -59,15 +59,18 @@ func Register(c *gin.Context) {
 		Role:         role,
 	}
 	if err := database.DB.Create(&user).Error; err != nil {
-		c.HTML(http.StatusInternalServerError, "register.html", gin.H{"error": "Ошибка сохранения пользователя"})
+		render(c, http.StatusInternalServerError, "register.html", gin.H{"error": "Ошибка сохранения пользователя"})
 		return
 	}
+
+	// Можно при желании писать в аудит создание пользователя
+	// database.CreateAuditLog(user.ID, "user", user.ID, "create", "Создан пользователь "+user.Username)
 
 	c.Redirect(http.StatusFound, "/login")
 }
 
 func ShowLogin(c *gin.Context) {
-	c.HTML(http.StatusOK, "login.html", gin.H{"error": ""})
+	render(c, http.StatusOK, "login.html", gin.H{"error": ""})
 }
 
 type loginForm struct {
@@ -78,18 +81,18 @@ type loginForm struct {
 func Login(c *gin.Context) {
 	var form loginForm
 	if err := c.ShouldBind(&form); err != nil {
-		c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "Некорректные данные"})
+		render(c, http.StatusBadRequest, "login.html", gin.H{"error": "Некорректные данные"})
 		return
 	}
 
 	var user models.User
 	if err := database.DB.Where("username = ?", form.Username).First(&user).Error; err != nil {
-		c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "Неверный логин или пароль"})
+		render(c, http.StatusBadRequest, "login.html", gin.H{"error": "Неверный логин или пароль"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(form.Password)); err != nil {
-		c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "Неверный логин или пароль"})
+		render(c, http.StatusBadRequest, "login.html", gin.H{"error": "Неверный логин или пароль"})
 		return
 	}
 

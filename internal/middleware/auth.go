@@ -9,41 +9,42 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// RequireAuth — проверяет, что пользователь залогинен (есть user_id в сессии).
+// Если нет — редиректит на /login.
 func RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		sess := sessions.Default(c)
-		userID := sess.Get("user_id")
-		if userID == nil {
+
+		if uid, ok := sess.Get("user_id").(uint); !ok || uid == 0 {
 			c.Redirect(http.StatusFound, "/login")
 			c.Abort()
 			return
 		}
+
 		c.Next()
 	}
 }
 
+// RequireRole — пускает только пользователей с одной из указанных ролей.
 func RequireRole(roles ...models.UserRole) gin.HandlerFunc {
-	roleSet := map[models.UserRole]struct{}{}
-	for _, r := range roles {
-		roleSet[r] = struct{}{}
-	}
-
 	return func(c *gin.Context) {
 		sess := sessions.Default(c)
-		roleVal := sess.Get("role")
-		roleStr, ok := roleVal.(string)
-		if !ok {
-			c.Redirect(http.StatusFound, "/login")
-			c.Abort()
-			return
-		}
-		role := models.UserRole(roleStr)
+		roleStr, _ := sess.Get("role").(string)
+		current := models.UserRole(roleStr)
 
-		if _, ok := roleSet[role]; !ok {
-			c.String(http.StatusForbidden, "access denied")
-			c.Abort()
+		allowed := false
+		for _, r := range roles {
+			if r == current {
+				allowed = true
+				break
+			}
+		}
+
+		if !allowed {
+			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
+
 		c.Next()
 	}
 }

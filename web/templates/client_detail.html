@@ -8,14 +8,24 @@
 <body>
 <header class="topbar">
     <div class="logo">IB Integrator</div>
+
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
         <a href="/projects">Проекты</a>
-        <a href="/audit">Аудит</a>
+        {{ if and .CurrentUser (eq .CurrentUser.Role "admin") }}
+            <a href="/audit">Аудит</a>
+        {{ end }}
         <a href="/logout">Выход</a>
     </nav>
+
+    <div class="user-info">
+        {{ if .CurrentUser }}
+            👤 {{ .CurrentUser.Username }} ({{ .CurrentUser.Role }})
+        {{ end }}
+    </div>
 </header>
+
 
 <main class="content">
     <h2>Клиент: {{ .client.Name }}</h2>
@@ -39,19 +49,70 @@
     </div>
 
     <div class="grid-2" style="margin-top: 24px;">
+
+        <!-- Объекты защиты -->
         <div class="card">
             <h3>Объекты защиты</h3>
 
             {{ if .client.Assets }}
-                <ul>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Тип</th>
+                        <th>Описание</th>
+                    </tr>
+                    </thead>
+                    <tbody>
                     {{ range .client.Assets }}
-                        <li>{{ .Name }}</li>
+                        <tr>
+                            <td>{{ .Name }}</td>
+                            <td>{{ .AssetType }}</td>
+                            <td>{{ .Description }}</td>
+                        </tr>
                     {{ end }}
-                </ul>
+                    </tbody>
+                </table>
             {{ else }}
                 <p class="muted">Для этого клиента пока не заведены объекты защиты.</p>
             {{ end }}
         </div>
+
+        <!-- Проекты клиента -->
+        <div class="card">
+            <h3>Проекты по ИБ</h3>
+
+            {{ if .client.Projects }}
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Объект защиты</th>
+                        <th>Тип</th>
+                        <th>Статус</th>
+                        <th>План. даты</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{ range .client.Projects }}
+                        <tr>
+                            <td>{{ .Title }}</td>
+                            <td>{{ if .Asset }}{{ .Asset.Name }}{{ end }}</td>
+                            <td>{{ .Type }}</td>
+                            <td>{{ .Status }}</td>
+                            <td>
+                                {{ if .PlannedStart }}с {{ .PlannedStart.Format "2006-01-02" }}{{ end }}
+                                {{ if .PlannedEnd }} по {{ .PlannedEnd.Format "2006-01-02" }}{{ end }}
+                            </td>
+                        </tr>
+                    {{ end }}
+                    </tbody>
+                </table>
+            {{ else }}
+                <p class="muted">Для этого клиента пока нет проектов.</p>
+            {{ end }}
+        </div>
+
     </div>
 </main>
 </body>

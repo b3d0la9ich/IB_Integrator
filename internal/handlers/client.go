@@ -12,10 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// helper: кто может управлять клиентами (admin + sales)
 func isAdmin(c *gin.Context) bool {
 	sess := sessions.Default(c)
 	roleStr, _ := sess.Get("role").(string)
-	return models.UserRole(roleStr) == models.RoleAdmin
+	role := models.UserRole(roleStr)
+	return role == models.RoleAdmin || role == models.RoleSales
 }
 
 //
@@ -30,9 +32,9 @@ func ListClients(c *gin.Context) {
 	var clients []models.Client
 	database.DB.Order("name asc").Find(&clients)
 
-	c.HTML(http.StatusOK, "clients_list.html", gin.H{
+	render(c, http.StatusOK, "clients_list.html", gin.H{
 		"clients": clients,
-		"IsAdmin": role == models.RoleAdmin,
+		"IsAdmin": role == models.RoleAdmin, // именно "настоящий" админ
 	})
 }
 
@@ -42,7 +44,7 @@ func ShowNewClient(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "clients_new.html", gin.H{
+	render(c, http.StatusOK, "clients_new.html", gin.H{
 		"error": "",
 	})
 }
@@ -84,7 +86,6 @@ func CreateClient(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/clients")
 }
 
-
 // форма редактирования
 func ShowEditClient(c *gin.Context) {
 	if !isAdmin(c) {
@@ -105,7 +106,7 @@ func ShowEditClient(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "clients_edit.html", gin.H{
+	render(c, http.StatusOK, "clients_edit.html", gin.H{
 		"client": client,
 		"error":  "",
 	})
@@ -140,7 +141,7 @@ func UpdateClient(c *gin.Context) {
 	notes := strings.TrimSpace(c.PostForm("notes"))
 
 	if len(name) < 3 {
-		c.HTML(http.StatusBadRequest, "clients_edit.html", gin.H{
+		render(c, http.StatusBadRequest, "clients_edit.html", gin.H{
 			"client": client,
 			"error":  "Название организации должно быть не короче 3 символов",
 		})
@@ -156,7 +157,7 @@ func UpdateClient(c *gin.Context) {
 	client.Notes = notes
 
 	if err := database.DB.Save(&client).Error; err != nil {
-		c.HTML(http.StatusInternalServerError, "clients_edit.html", gin.H{
+		render(c, http.StatusInternalServerError, "clients_edit.html", gin.H{
 			"client": client,
 			"error":  "Ошибка сохранения клиента",
 		})
@@ -167,7 +168,7 @@ func UpdateClient(c *gin.Context) {
 }
 
 func renderClientError(c *gin.Context, msg string) {
-	c.HTML(http.StatusBadRequest, "clients_new.html", gin.H{
+	render(c, http.StatusBadRequest, "clients_new.html", gin.H{
 		"error": msg,
 	})
 }

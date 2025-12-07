@@ -66,11 +66,12 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 	store := cookie.NewStore([]byte(cfg.SessionSecret))
 	r.Use(sessions.Sessions("ib_session", store))
 
+	r.Use(middleware.InjectUser())
+
 	// ГЛАВНАЯ
 	r.GET("/", handlers.IndexPage)
 
-
-	// auth
+	// AUTH
 	r.GET("/register", handlers.ShowRegister)
 	r.POST("/register", handlers.Register)
 	r.GET("/login", handlers.ShowLogin)
@@ -80,7 +81,7 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 	auth := r.Group("/")
 	auth.Use(middleware.RequireAuth())
 
-	// клиенты
+	// КЛИЕНТЫ
 	auth.GET("/clients", handlers.ListClients)
 	auth.GET("/clients/new",
 		middleware.RequireRole(models.RoleAdmin, models.RoleSales),
@@ -92,44 +93,69 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 	)
 	auth.GET("/clients/:id", handlers.ShowClientDetail)
 
-	// объекты защиты
+	// ОБЪЕКТЫ ЗАЩИТЫ
 	auth.GET("/assets", handlers.ListAssets)
+
 	auth.GET("/assets/new",
-		middleware.RequireRole(models.RoleAdmin, models.RoleSales, models.RoleEngineer),
+		middleware.RequireRole(models.RoleAdmin, models.RoleSales),
 		handlers.ShowNewAsset,
 	)
 	auth.POST("/assets/new",
-		middleware.RequireRole(models.RoleAdmin, models.RoleSales, models.RoleEngineer),
+		middleware.RequireRole(models.RoleAdmin, models.RoleSales),
 		handlers.CreateAsset,
 	)
 
-	// проекты
+	// редактирование объектов защиты — только админ
+	auth.GET("/assets/:id/edit",
+		middleware.RequireRole(models.RoleAdmin),
+		handlers.ShowEditAsset,
+	)
+	auth.POST("/assets/:id/edit",
+		middleware.RequireRole(models.RoleAdmin),
+		handlers.UpdateAsset,
+	)
+
+	// ПРОЕКТЫ
 	auth.GET("/projects", handlers.ListProjects)
 
 	auth.GET("/projects/new",
 		middleware.RequireRole(models.RoleAdmin, models.RoleSales),
 		handlers.ShowNewProject,
 	)
-
 	auth.POST("/projects/new",
 		middleware.RequireRole(models.RoleAdmin, models.RoleSales),
 		handlers.CreateProject,
 	)
 
-	// смена статуса: admin + sales + engineer
+	// редактирование проектов — только админ
+	auth.GET("/projects/:id/edit",
+		middleware.RequireRole(models.RoleAdmin),
+		handlers.ShowEditProject,
+	)
+	auth.POST("/projects/:id/edit",
+		middleware.RequireRole(models.RoleAdmin),
+		handlers.UpdateProject,
+	)
+
+	// смена статуса проекта: admin + sales + engineer
 	auth.POST("/projects/:id/status",
 		middleware.RequireRole(models.RoleAdmin, models.RoleSales, models.RoleEngineer),
 		handlers.ChangeProjectStatus,
 	)
 
+	// история проекта
+	auth.GET("/projects/:id/history",
+		middleware.RequireRole(models.RoleAdmin, models.RoleSales, models.RoleEngineer),
+		handlers.ShowProjectHistory,
+	)
 
-	// аудит
+	// АУДИТ
 	auth.GET("/audit",
 		middleware.RequireRole(models.RoleAdmin, models.RoleViewer),
 		handlers.ListAuditLogs,
 	)
 
-	// health
+	// HEALTHCHECK
 	r.GET("/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})
