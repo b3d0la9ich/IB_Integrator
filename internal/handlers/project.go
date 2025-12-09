@@ -94,8 +94,8 @@ func CreateProject(c *gin.Context) {
 	projectTypeStr := c.PostForm("project_type")
 	engineerIDStr := c.PostForm("engineer_id")
 	desc := strings.TrimSpace(c.PostForm("description"))
-	plannedStartStr := c.PostForm("planned_start")
-	plannedEndStr := c.PostForm("planned_end")
+	plannedStartStr := strings.TrimSpace(c.PostForm("planned_start"))
+	plannedEndStr := strings.TrimSpace(c.PostForm("planned_end"))
 
 	if len(title) < 3 {
 		renderProjectError(c, "Название проекта должно быть не короче 3 символов")
@@ -140,18 +140,37 @@ func CreateProject(c *gin.Context) {
 		}
 	}
 
+	// --- ВАЛИДАЦИЯ ДАТ ---
 	var plannedStart *time.Time
+	var plannedEnd *time.Time
+
+	today := time.Now().Truncate(24 * time.Hour)
+
 	if plannedStartStr != "" {
-		if t, err := time.Parse("2006-01-02", plannedStartStr); err == nil {
-			plannedStart = &t
+		t, err := time.Parse("2006-01-02", plannedStartStr)
+		if err != nil {
+			renderProjectError(c, "Некорректная дата начала проекта")
+			return
 		}
+		if t.Before(today) {
+			renderProjectError(c, "Дата начала проекта не может быть раньше сегодняшнего дня")
+			return
+		}
+		plannedStart = &t
 	}
 
-	var plannedEnd *time.Time
 	if plannedEndStr != "" {
-		if t, err := time.Parse("2006-01-02", plannedEndStr); err == nil {
-			plannedEnd = &t
+		t, err := time.Parse("2006-01-02", plannedEndStr)
+		if err != nil {
+			renderProjectError(c, "Некорректная дата окончания проекта")
+			return
 		}
+		plannedEnd = &t
+	}
+
+	if plannedStart != nil && plannedEnd != nil && plannedEnd.Before(*plannedStart) {
+		renderProjectError(c, "Дата окончания проекта не может быть раньше даты начала")
+		return
 	}
 
 	sess := sessions.Default(c)
@@ -351,8 +370,8 @@ func UpdateProject(c *gin.Context) {
 	assetIDStr := c.PostForm("asset_id")
 	projectType := c.PostForm("project_type")
 	engineerIDStr := c.PostForm("engineer_id")
-	plannedStartStr := c.PostForm("planned_start")
-	plannedEndStr := c.PostForm("planned_end")
+	plannedStartStr := strings.TrimSpace(c.PostForm("planned_start"))
+	plannedEndStr := strings.TrimSpace(c.PostForm("planned_end"))
 	description := strings.TrimSpace(c.PostForm("description"))
 
 	if len(title) < 3 {
@@ -389,17 +408,25 @@ func UpdateProject(c *gin.Context) {
 		engineerID = engineer.ID
 	}
 
+	// --- ВАЛИДАЦИЯ ДАТ ПРИ РЕДАКТИРОВАНИИ ---
 	var plannedStart *time.Time
+	var plannedEnd *time.Time
+
+	today := time.Now().Truncate(24 * time.Hour)
+
 	if plannedStartStr != "" {
 		t, err := time.Parse("2006-01-02", plannedStartStr)
 		if err != nil {
 			renderProjectEditError(c, project, "Неверная дата начала")
 			return
 		}
+		if t.Before(today) {
+			renderProjectEditError(c, project, "Дата начала проекта не может быть раньше сегодняшнего дня")
+			return
+		}
 		plannedStart = &t
 	}
 
-	var plannedEnd *time.Time
 	if plannedEndStr != "" {
 		t, err := time.Parse("2006-01-02", plannedEndStr)
 		if err != nil {
@@ -407,6 +434,11 @@ func UpdateProject(c *gin.Context) {
 			return
 		}
 		plannedEnd = &t
+	}
+
+	if plannedStart != nil && plannedEnd != nil && plannedEnd.Before(*plannedStart) {
+		renderProjectEditError(c, project, "Дата окончания проекта не может быть раньше даты начала")
+		return
 	}
 
 	project.Title = title

@@ -7,13 +7,15 @@
 </head>
 <body>
 <header class="topbar">
-    <div class="logo">IB Integrator</div>
+    <a href="/" class="logo">IB Integrator</a>
 
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
         <a href="/projects">Проекты</a>
-        <a href="/audit">Аудит</a>
+        {{ if or (eq .role "admin") (eq .role "viewer") }}
+            <a href="/audit">Аудит</a>
+        {{ end }}
         <a href="/logout">Выход</a>
     </nav>
 
@@ -23,7 +25,6 @@
         {{ end }}
     </div>
 </header>
-
 
 <main class="content">
     <div class="page-header">
@@ -62,11 +63,15 @@
                     </div>
                 {{ end }}
 
-                {{ if eq $.role "admin" }}
-                    <div class="card-actions">
+                <div class="card-actions">
+                    {{ if eq $.role "admin" }}
                         <a class="btn small" href="/assets/{{ .ID }}/edit">Редактировать</a>
-                    </div>
-                {{ end }}
+                    {{ end }}
+
+                    {{ if or (eq $.role "admin") (eq $.role "engineer") }}
+                        <a class="btn small secondary" href="/assets/{{ .ID }}/threats">Угрозы</a>
+                    {{ end }}
+                </div>
             </div>
         {{ end }}
     </div>

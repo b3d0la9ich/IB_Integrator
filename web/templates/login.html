@@ -7,25 +7,33 @@
 </head>
 <body>
 <header class="topbar">
-    <div class="logo">IB Integrator</div>
+    <a href="/" class="logo">IB Integrator</a>
 </header>
 
 <main class="content">
-    <div class="form-card">
+    <div class="auth-card card">
         <h2>Вход</h2>
+
         {{ if .error }}
             <div class="error">{{ .error }}</div>
         {{ end }}
-        <form method="post" action="/login">
+
+        <form method="post" action="/login" class="form-vertical">
             <label>Логин
-                <input type="text" name="username" required>
+                <input type="email" name="username" required placeholder="user@ib.local">
             </label>
+
             <label>Пароль
                 <input type="password" name="password" required>
             </label>
-            <button type="submit">Войти</button>
+
+            <button type="submit" class="btn">Войти</button>
         </form>
-        <p>Ещё нет аккаунта? <a href="/register">Зарегистрируйтесь</a></p>
+
+        <p class="auth-secondary">
+            Ещё нет аккаунта?
+            <a href="/register">Зарегистрируйтесь</a>
+        </p>
     </div>
 </main>
 </body>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Угрозы и меры защиты</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="logo">IB Integrator</a>
+
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        {{ if or (eq .role "admin") (eq .role "viewer") }}
+            <a href="/audit">Аудит</a>
+        {{ end }}
+    </nav>
+
+    <div class="user-info">
+        {{ if .CurrentUser }}
+            👤 {{ .CurrentUser.Username }} ({{ .CurrentUser.Role }})
+        {{ end }}
+    </div>
+</header>
+
+<main class="content">
+    <div class="page-header">
+        <h2>Угрозы и меры защиты</h2>
+        <div class="hero-actions">
+            <a class="btn" href="/threats/new">Новая угроза</a>
+            <a class="btn secondary" href="/measures/new">Новая мера защиты</a>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <h3>Каталог угроз</h3>
+            {{ if not .threats }}
+                <p>Угрозы пока не заведены.</p>
+            {{ else }}
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Код</th>
+                    <th>Название</th>
+                    <th>Категория</th>
+                    <th>Рекомендуемые меры</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{ $rec := .RecMeasures }}
+                {{ range .threats }}
+                    <tr>
+                        <td>{{ .Code }}</td>
+                        <td>{{ .Name }}</td>
+                        <td>{{ .Category }}</td>
+                        <td>
+                            {{ $list := index $rec .ID }}
+                            {{ if $list }}
+                                {{ range $i, $m := $list }}
+                                    {{ if gt $i 0 }}, {{ end }}{{ $m.Code }}
+                                {{ end }}
+                            {{ else }}
+                                —
+                            {{ end }}
+                        </td>
+                    </tr>
+                {{ end }}
+                </tbody>
+            </table>
+            {{ end }}
+        </div>
+
+        <div class="card">
+            <h3>Каталог мер защиты</h3>
+            {{ if not .measures }}
+                <p>Меры защиты пока не заведены.</p>
+            {{ else }}
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Код</th>
+                    <th>Название</th>
+                    <th>Стандарт / норматив</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{ range .measures }}
+                    <tr>
+                        <td>{{ .Code }}</td>
+                        <td>{{ .Name }}</td>
+                        <td>{{ .Standard }}</td>
+                    </tr>
+                {{ end }}
+                </tbody>
+            </table>
+            {{ end }}
+        </div>
+    </div>
+</main>
+</body>
+</html>

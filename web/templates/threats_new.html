@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Новая угроза</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="logo">IB Integrator</a>
+
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/threats">Угрозы и меры</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <h2>Новая угроза</h2>
+
+    {{ if .error }}
+        <div class="error">{{ .error }}</div>
+    {{ end }}
+
+    <div class="card form-card">
+        <form method="post" action="/threats/new" class="form-grid">
+
+            <label class="full">
+                Код угрозы
+                <input type="text" name="code"
+                       list="threat-code-templates"
+                       placeholder="T1, STRIDE-S, УБИ.001">
+                <datalist id="threat-code-templates">
+                    <option value="T1">
+                    <option value="T2">
+                    <option value="STRIDE-S">
+                    <option value="STRIDE-T">
+                    <option value="DB-LEAK">
+                    <option value="DB-DOS">
+                    <option value="ADM-MISCONF">
+                    <option value="УБИ.001">
+                    <option value="УБИ.002">
+                </datalist>
+            </label>
+
+            <label class="full">
+                Название *
+                <input type="text" name="name" required
+                       placeholder="Несанкционированный удалённый доступ">
+            </label>
+
+            <label class="full">
+                Категория
+                <select name="category">
+                    <option value="">— выберите категорию —</option>
+                    <option value="STRIDE">STRIDE</option>
+                    <option value="УБИ">УБИ (модель угроз ФСТЭК)</option>
+                    <option value="Техногенная">Техногенная</option>
+                    <option value="Организационная">Организационная</option>
+                    <option value="Техническая">Техническая</option>
+                    <option value="Программная">Программная</option>
+                    <option value="Сетевая">Сетевая</option>
+                    <option value="Другое">Другое</option>
+                </select>
+            </label>
+
+            <label class="full">
+                Описание
+                <textarea name="description"
+                          placeholder="Краткое описание сценариев реализации угрозы, активов и возможных последствий."></textarea>
+            </label>
+
+            <div class="form-actions">
+                <button type="submit" class="btn">Сохранить</button>
+                <a href="/threats" class="btn secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

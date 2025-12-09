@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Угрозы объекта защиты</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="logo">IB Integrator</a>
+
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        {{ if or (eq .role "admin") (eq .role "viewer") }}
+            <a href="/audit">Аудит</a>
+        {{ end }}
+        <a href="/logout">Выход</a>
+    </nav>
+
+    <div class="user-info">
+        {{ if .CurrentUser }}
+            👤 {{ .CurrentUser.Username }} ({{ .CurrentUser.Role }})
+        {{ end }}
+    </div>
+</header>
+
+<main class="content">
+    <h2>Угрозы объекта защиты</h2>
+
+    <div class="card">
+        <h3>Объект</h3>
+        <p><b>Клиент:</b> {{ if .asset.Client }}{{ .asset.Client.Name }}{{ else }}—{{ end }}</p>
+        <p><b>Название:</b> {{ .asset.Name }}</p>
+        <p><b>Тип:</b> {{ .asset.AssetType }}</p>
+        {{ if .asset.Category }}
+            <p><b>Класс / уровень защиты:</b> {{ .asset.Category }}</p>
+        {{ end }}
+        {{ if .asset.Description }}
+            <p><b>Описание:</b> {{ .asset.Description }}</p>
+        {{ end }}
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <h3>Актуальные угрозы</h3>
+
+            {{ if not .links }}
+                <p>Для данного объекта угрозы пока не зафиксированы.</p>
+            {{ else }}
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Код</th>
+                    <th>Название</th>
+                    <th>Категория</th>
+                    <th>Уровень риска</th>
+                    <th>Комментарий</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {{ range .links }}
+                    <tr>
+                        <td>{{ if .Threat }}{{ .Threat.Code }}{{ end }}</td>
+                        <td>{{ if .Threat }}{{ .Threat.Name }}{{ end }}</td>
+                        <td>{{ if .Threat }}{{ .Threat.Category }}{{ end }}</td>
+                        <td>{{ .RiskLevel }}</td>
+                        <td>
+                            {{ if .Notes }}
+                                {{ .Notes }}
+                            {{ else }}
+                                —
+                            {{ end }}
+                        </td>
+                        <td>
+                            <form method="post"
+                                  action="/assets/{{ $.asset.ID }}/threats/{{ .ID }}/delete"
+                                  onsubmit="return confirm('Удалить угрозу для объекта?');">
+                                <button type="submit" class="btn small danger">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                {{ end }}
+                </tbody>
+            </table>
+            {{ end }}
+        </div>
+
+        <div class="card">
+            <h3>Добавить угрозу</h3>
+
+            {{ if not .threats }}
+                <p>Все угрозы из каталога уже привязаны к объекту.</p>
+            {{ else }}
+            <form method="post" action="/assets/{{ .asset.ID }}/threats/add" class="form-vertical">
+                <label>Угроза *
+                    <select name="threat_id" required>
+                        <option value="">-- выберите угрозу --</option>
+                        {{ range .threats }}
+                            <option value="{{ .ID }}">{{ .Code }} — {{ .Name }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+
+                <label>Уровень риска *
+                    <select name="risk_level" required>
+                        <option value="">-- выберите уровень --</option>
+                        <option value="low">low (низкий)</option>
+                        <option value="medium">medium (средний)</option>
+                        <option value="high">high (высокий)</option>
+                    </select>
+                </label>
+
+                <label>Комментарий
+                    <textarea name="notes" placeholder="Обоснование оценки риска, контекст, сценарии реализации."></textarea>
+                </label>
+
+                <button type="submit" class="btn">Добавить угрозу</button>
+                <a href="/assets" class="btn secondary">Назад к объектам</a>
+            </form>
+            {{ end }}
+        </div>
+    </div>
+</main>
+</body>
+</html>

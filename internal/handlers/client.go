@@ -68,6 +68,58 @@ func CreateClient(c *gin.Context) {
 		return
 	}
 
+	// --- ПРОВЕРКА УНИКАЛЬНОСТИ ИНН ---
+	if inn != "" {
+		var count int64
+		database.DB.Model(&models.Client{}).
+			Where("inn = ?", inn).
+			Count(&count)
+
+		if count > 0 {
+			renderClientError(c, "Клиент с таким ИНН уже существует")
+			return
+		}
+	}
+
+	// --- ПРОВЕРКА УНИКАЛЬНОСТИ ИМЕНИ ---
+	if name != "" {
+		var count int64
+		database.DB.Model(&models.Client{}).
+			Where("LOWER(name) = LOWER(?)", name).
+			Count(&count)
+
+		if count > 0 {
+			renderClientError(c, "Клиент с таким названием уже существует")
+			return
+		}
+	}
+
+	// --- ПРОВЕРКА УНИКАЛЬНОСТИ EMAIL ---
+	if contactEmail != "" {
+		var count int64
+		database.DB.Model(&models.Client{}).
+			Where("LOWER(contact_email) = LOWER(?)", contactEmail).
+			Count(&count)
+
+		if count > 0 {
+			renderClientError(c, "Клиент с таким e-mail уже существует")
+			return
+		}
+	}
+
+	// --- ПРОВЕРКА УНИКАЛЬНОСТИ ТЕЛЕФОНА ---
+	if contactPhone != "" {
+		var count int64
+		database.DB.Model(&models.Client{}).
+			Where("contact_phone = ?", contactPhone).
+			Count(&count)
+
+		if count > 0 {
+			renderClientError(c, "Клиент с таким номером телефона уже существует")
+			return
+		}
+	}
+
 	client := models.Client{
 		Name:         name,
 		OrgType:      orgType,
@@ -81,6 +133,14 @@ func CreateClient(c *gin.Context) {
 	if err := database.DB.Create(&client).Error; err != nil {
 		renderClientError(c, "Ошибка сохранения клиента в БД")
 		return
+	}
+
+	// --- АУДИТ: создание клиента ---
+	sess := sessions.Default(c)
+	if v := sess.Get("user_id"); v != nil {
+		if uid, ok := v.(uint); ok {
+			database.CreateAuditLog(uid, "client", client.ID, "create", "Создан клиент: "+client.Name)
+		}
 	}
 
 	c.Redirect(http.StatusFound, "/clients")
@@ -148,6 +208,70 @@ func UpdateClient(c *gin.Context) {
 		return
 	}
 
+	// --- ПРОВЕРКА УНИКАЛЬНОСТИ ИНН (кроме текущего клиента) ---
+	if inn != "" && inn != client.INN {
+		var count int64
+		database.DB.Model(&models.Client{}).
+			Where("inn = ? AND id <> ?", inn, client.ID).
+			Count(&count)
+
+		if count > 0 {
+			render(c, http.StatusBadRequest, "clients_edit.html", gin.H{
+				"client": client,
+				"error":  "Клиент с таким ИНН уже существует",
+			})
+			return
+		}
+	}
+
+	// --- ПРОВЕРКА УНИКАЛЬНОСТИ ИМЕНИ ---
+	if name != "" && name != client.Name {
+		var count int64
+		database.DB.Model(&models.Client{}).
+			Where("LOWER(name) = LOWER(?) AND id <> ?", name, client.ID).
+			Count(&count)
+
+		if count > 0 {
+			render(c, http.StatusBadRequest, "clients_edit.html", gin.H{
+				"client": client,
+				"error":  "Клиент с таким названием уже существует",
+			})
+			return
+		}
+	}
+
+	// --- ПРОВЕРКА УНИКАЛЬНОСТИ EMAIL ---
+	if contactEmail != "" && !strings.EqualFold(contactEmail, client.ContactEmail) {
+		var count int64
+		database.DB.Model(&models.Client{}).
+			Where("LOWER(contact_email) = LOWER(?) AND id <> ?", contactEmail, client.ID).
+			Count(&count)
+
+		if count > 0 {
+			render(c, http.StatusBadRequest, "clients_edit.html", gin.H{
+				"client": client,
+				"error":  "Клиент с таким e-mail уже существует",
+			})
+			return
+		}
+	}
+
+	// --- ПРОВЕРКА УНИКАЛЬНОСТИ ТЕЛЕФОНА ---
+	if contactPhone != "" && contactPhone != client.ContactPhone {
+		var count int64
+		database.DB.Model(&models.Client{}).
+			Where("contact_phone = ? AND id <> ?", contactPhone, client.ID).
+			Count(&count)
+
+		if count > 0 {
+			render(c, http.StatusBadRequest, "clients_edit.html", gin.H{
+				"client": client,
+				"error":  "Клиент с таким номером телефона уже существует",
+			})
+			return
+		}
+	}
+
 	client.Name = name
 	client.OrgType = orgType
 	client.INN = inn
@@ -162,6 +286,14 @@ func UpdateClient(c *gin.Context) {
 			"error":  "Ошибка сохранения клиента",
 		})
 		return
+	}
+
+	// --- АУДИТ: изменение клиента ---
+	sess := sessions.Default(c)
+	if v := sess.Get("user_id"); v != nil {
+		if uid, ok := v.(uint); ok {
+			database.CreateAuditLog(uid, "client", client.ID, "update", "Изменён клиент: "+client.Name)
+		}
 	}
 
 	c.Redirect(http.StatusFound, "/clients/"+idStr)

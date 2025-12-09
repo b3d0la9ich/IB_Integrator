@@ -7,16 +7,16 @@
 </head>
 <body>
 <header class="topbar">
-    <div class="logo">IB Integrator</div>
+    <a href="/" class="logo">IB Integrator</a>
+
 
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
         <a href="/projects">Проекты</a>
-        {{ if and .CurrentUser (eq .CurrentUser.Role "admin") }}
+        {{ if or (eq .role "admin") (eq .role "viewer") }}
             <a href="/audit">Аудит</a>
         {{ end }}
-
         <a href="/logout">Выход</a>
     </nav>
 

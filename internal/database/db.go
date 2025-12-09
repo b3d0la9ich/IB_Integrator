@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"log"
 	"os"
 	"time"
@@ -42,14 +43,195 @@ func Init(dsn string) {
 		&models.Asset{},
 		&models.Project{},
 		&models.AuditLog{},
+
+		// 💾 новые таблицы каталога угроз и мер
+		&models.Threat{},
+		&models.ControlMeasure{},
+		&models.AssetThreat{},
+		&models.ProjectMeasure{},
+		&models.ThreatMeasure{}, // <--- СВЯЗЬ УГРОЗА → МЕРА
 	)
 	if err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
 
+	// 📌 сидинг каталога угроз и мер защиты + связок "угроза → мера"
+	if err := seedThreatsAndMeasures(); err != nil {
+		log.Fatalf("failed to seed threats/measures: %v", err)
+	}
+
 	// создаём дефолтного админа и пару тестовых пользователей
 	createDefaultAdmin()
 	seedDefaultUsers()
+}
+
+// seedThreatsAndMeasures заполняет базовый каталог угроз и мер защиты.
+// Вызывается один раз при старте (после AutoMigrate).
+func seedThreatsAndMeasures() error {
+	// --- Базовый каталог угроз (пример: STRIDE + общие ИБ-угрозы для БД/систем управления ИБ) ---
+	baseThreats := []models.Threat{
+		{
+			Code:        "STRIDE-S",
+			Name:        "Подмена личности (Spoofing)",
+			Category:    "STRIDE",
+			Description: "Угроза подмены субъекта доступа (аккаунты пользователей, сервисов, админских учёток).",
+		},
+		{
+			Code:        "STRIDE-T",
+			Name:        "Подмена/искажение данных (Tampering)",
+			Category:    "STRIDE",
+			Description: "Нарушение целостности данных в БД, логах, конфигурациях систем.",
+		},
+		{
+			Code:        "DB-LEAK",
+			Name:        "Несанкционированное раскрытие данных БД",
+			Category:    "Конфиденциальность",
+			Description: "Утечка данных клиентов и объектов защиты через компрометацию учётных данных или уязвимости приложений.",
+		},
+		{
+			Code:        "DB-DOS",
+			Name:        "Нарушение доступности БД",
+			Category:    "Доступность",
+			Description: "Вывод из строя сервиса интегратора или СУБД, отказ в обслуживании.",
+		},
+		{
+			Code:        "ADM-MISCONF",
+			Name:        "Ошибочное администрирование и нехватка контроля",
+			Category:    "Организационные",
+			Description: "Неверные настройки прав, отсутствие аудита действий администраторов и инженеров.",
+		},
+	}
+
+	for _, t := range baseThreats {
+		var existing models.Threat
+		err := DB.Where("code = ?", t.Code).First(&existing).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := DB.Create(&t).Error; err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+	}
+
+	// --- Базовый каталог мер защиты ---
+	baseMeasures := []models.ControlMeasure{
+		{
+			Code:     "FW-NET-SEGMENT",
+			Name:     "Сетевой экран и сегментация",
+			Standard: "ФСТЭК, ГОСТ; best practices ИБ",
+			Description: "Разделение сетей, фильтрация трафика между сегментами, " +
+				"ограничение доступа к БД и служебным сервисам.",
+		},
+		{
+			Code:     "AUTH-RBAC",
+			Name:     "Ролевое управление доступом",
+			Standard: "ФСТЭК, ISO 27001 A.9",
+			Description: "Роли admin/sales/engineer/viewer, ограничение административных операций и доступа к данным.",
+		},
+		{
+			Code:     "LOG-AUDIT",
+			Name:     "Журналирование и аудит действий",
+			Standard: "ФСТЭК, ГОСТ, внутренние политики ИБ",
+			Description: "Регистрация операций с клиентами, объектами защиты, проектами; анализ подозрительной активности.",
+		},
+		{
+			Code:     "DB-BACKUP",
+			Name:     "Резервное копирование БД",
+			Standard: "ГОСТ по резервированию, best practices",
+			Description: "Регулярные резервные копии, проверка восстановления, хранение резервов в защищённой зоне.",
+		},
+		{
+			Code:     "SEC-CODE-REV",
+			Name:     "Контроль безопасности приложений",
+			Standard: "OWASP, внутренние стандарты",
+			Description: "Анализ кода, устранение SQL-инъекций и XSS, безопасная конфигурация ORM и инфраструктуры.",
+		},
+	}
+
+	for _, m := range baseMeasures {
+		var existing models.ControlMeasure
+		err := DB.Where("code = ?", m.Code).First(&existing).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := DB.Create(&m).Error; err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+	}
+
+	// --- Связки "угроза → рекомендуемые меры защиты" ---
+	// связываем по code, чтобы не завязываться на ID
+	type link struct {
+		ThreatCode  string
+		MeasureCode string
+	}
+
+	links := []link{
+		// Подмена личности → RBAC + аудит
+		{"STRIDE-S", "AUTH-RBAC"},
+		{"STRIDE-S", "LOG-AUDIT"},
+
+		// Тамперинг данных → контроль кода + аудит
+		{"STRIDE-T", "SEC-CODE-REV"},
+		{"STRIDE-T", "LOG-AUDIT"},
+
+		// Утечка БД → RBAC + сегментация + аудит
+		{"DB-LEAK", "AUTH-RBAC"},
+		{"DB-LEAK", "FW-NET-SEGMENT"},
+		{"DB-LEAK", "LOG-AUDIT"},
+
+		// Доступность БД → бэкапы + сегментация
+		{"DB-DOS", "DB-BACKUP"},
+		{"DB-DOS", "FW-NET-SEGMENT"},
+
+		// Ошибочное администрирование → аудит + RBAC
+		{"ADM-MISCONF", "LOG-AUDIT"},
+		{"ADM-MISCONF", "AUTH-RBAC"},
+	}
+
+	for _, l := range links {
+		var th models.Threat
+		if err := DB.Where("code = ?", l.ThreatCode).First(&th).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			return err
+		}
+
+		var m models.ControlMeasure
+		if err := DB.Where("code = ?", l.MeasureCode).First(&m).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			return err
+		}
+
+		var cnt int64
+		if err := DB.Model(&models.ThreatMeasure{}).
+			Where("threat_id = ? AND measure_id = ?", th.ID, m.ID).
+			Count(&cnt).Error; err != nil {
+			return err
+		}
+		if cnt > 0 {
+			continue
+		}
+
+		tm := models.ThreatMeasure{
+			ThreatID:  th.ID,
+			MeasureID: m.ID,
+		}
+		if err := DB.Create(&tm).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // админ только из кода/конфига

@@ -8,13 +8,13 @@
 <body>
 
 <header class="topbar">
-    <div class="logo">IB Integrator</div>
+    <a href="/" class="logo">IB Integrator</a>
 
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
         <a href="/projects">Проекты</a>
-        {{ if and .CurrentUser (eq .CurrentUser.Role "admin") }}
+        {{ if .IsAdmin }}
             <a href="/audit">Аудит</a>
         {{ end }}
         <a href="/logout">Выход</a>
@@ -27,7 +27,6 @@
     </div>
 </header>
 
-
 <main class="content">
     <h2>Проекты по ИБ</h2>
 
@@ -35,10 +34,13 @@
         {{ if or $.IsAdmin $.IsSales }}
             <a class="btn" href="/projects/new">+ Новый проект</a>
         {{ end }}
+
+        {{ if or $.IsAdmin $.IsEngineer }}
+            <a class="btn secondary" href="/threats">Угрозы и меры</a>
+        {{ end }}
     </div>
 
     <form method="get" action="/projects" class="filters">
-
         <label>Клиент
             <select name="client_id">
                 <option value="">Все</option>
@@ -91,7 +93,6 @@
 
         <tbody>
         {{ range .projects }}
-
             <tr>
                 <td>{{ .Title }}</td>
                 <td>{{ if .Client }}{{ .Client.Name }}{{ end }}</td>
@@ -106,94 +107,104 @@
                 <td>
                     <div class="actions">
 
-                        <!-- НОВАЯ КНОПКА: ИСТОРИЯ -->
-                        <a class="btn small" href="/projects/{{ .ID }}/history">Подробнее</a>
+                        <!-- Блок 1. Общая информация -->
+                        <div class="actions-block">
+                            <span class="muted">Инфо:</span>
+                            <a class="btn small" href="/projects/{{ .ID }}/history">Подробнее</a>
+                            {{ if $.IsAdmin }}
+                                <a class="btn small secondary" href="/projects/{{ .ID }}/edit">Редактировать</a>
+                            {{ end }}
+                        </div>
 
-                        <!-- Только админ может редактировать и удалять -->
-                        {{ if $.IsAdmin }}
-                            <a class="btn small secondary" href="/projects/{{ .ID }}/edit">Редактировать</a>
+                        <!-- Блок 2. Управление жизненным циклом -->
+                        <div class="actions-block">
+                            <span class="muted">Статус:</span>
 
-                            <form method="post" action="/projects/{{ .ID }}/delete"
-                                  style="display:inline-block"
-                                  onsubmit="return confirm('Удалить проект {{ .Title }}?');">
-                                <button type="submit" class="btn small danger">Удалить</button>
-                            </form>
-                        {{ end }}
+                            {{ if or $.IsAdmin $.IsSales $.IsEngineer }}
 
-                        <!-- ЛОГИКА СТАТУСОВ -->
-                        {{ if or $.IsAdmin $.IsSales $.IsEngineer }}
+                                {{ if eq (printf "%s" .Status) "planned" }}
+                                    {{ if or $.IsAdmin $.IsSales }}
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="in_progress">
+                                            <button class="btn small">В работу</button>
+                                        </form>
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="cancelled">
+                                            <button class="btn small secondary">Отменить</button>
+                                        </form>
+                                    {{ end }}
 
-                            {{ if eq (printf "%s" .Status) "planned" }}
-                                {{ if or $.IsAdmin $.IsSales }}
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="in_progress">
-                                        <button class="btn small">В работу</button>
-                                    </form>
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="cancelled">
-                                        <button class="btn small secondary">Отменить</button>
-                                    </form>
-                                {{ end }}
+                                {{ else if eq (printf "%s" .Status) "in_progress" }}
+                                    {{ if or $.IsAdmin $.IsEngineer }}
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="on_approval">
+                                            <button class="btn small">На согласование</button>
+                                        </form>
+                                    {{ end }}
 
-                            {{ else if eq (printf "%s" .Status) "in_progress" }}
-                                {{ if or $.IsAdmin $.IsEngineer }}
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="on_approval">
-                                        <button class="btn small">На согласование</button>
-                                    </form>
-                                {{ end }}
+                                {{ else if eq (printf "%s" .Status) "on_approval" }}
+                                    {{ if $.IsAdmin }}
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="in_progress">
+                                            <button class="btn small secondary">Назад в работу</button>
+                                        </form>
 
-                            {{ else if eq (printf "%s" .Status) "on_approval" }}
-                                {{ if $.IsAdmin }}
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="in_progress">
-                                        <button class="btn small secondary">Назад в работу</button>
-                                    </form>
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="finished">
+                                            <button class="btn small">Завершить</button>
+                                        </form>
 
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="finished">
-                                        <button class="btn small">Завершить</button>
-                                    </form>
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="cancelled">
+                                            <button class="btn small secondary">Отменить</button>
+                                        </form>
 
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="cancelled">
-                                        <button class="btn small secondary">Отменить</button>
-                                    </form>
+                                    {{ else if $.IsSales }}
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="in_progress">
+                                            <button class="btn small secondary">Назад в работу</button>
+                                        </form>
 
-                                {{ else if $.IsSales }}
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="in_progress">
-                                        <button class="btn small secondary">Назад в работу</button>
-                                    </form>
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="cancelled">
+                                            <button class="btn small secondary">Отменить</button>
+                                        </form>
+                                    {{ end }}
 
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="cancelled">
-                                        <button class="btn small secondary">Отменить</button>
-                                    </form>
-                                {{ end }}
+                                {{ else if eq (printf "%s" .Status) "finished" }}
+                                    {{ if $.IsAdmin }}
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="in_progress">
+                                            <button class="btn small secondary">Вернуть в работу</button>
+                                        </form>
+                                    {{ end }}
 
-                            {{ else if eq (printf "%s" .Status) "finished" }}
-                                {{ if $.IsAdmin }}
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="in_progress">
-                                        <button class="btn small secondary">Вернуть в работу</button>
-                                    </form>
-                                {{ end }}
+                                {{ else if eq (printf "%s" .Status) "cancelled" }}
+                                    {{ if $.IsAdmin }}
+                                        <form method="post" action="/projects/{{ .ID }}/status">
+                                            <input type="hidden" name="status" value="planned">
+                                            <button class="btn small secondary">Вернуть в план</button>
+                                        </form>
+                                    {{ end }}
 
-                            {{ else if eq (printf "%s" .Status) "cancelled" }}
-                                {{ if $.IsAdmin }}
-                                    <form method="post" action="/projects/{{ .ID }}/status">
-                                        <input type="hidden" name="status" value="planned">
-                                        <button class="btn small secondary">Вернуть в план</button>
-                                    </form>
+                                {{ else }}
+                                    <span class="muted">Нет действий</span>
                                 {{ end }}
 
                             {{ else }}
                                 <span class="muted">Нет действий</span>
                             {{ end }}
+                        </div>
 
-                        {{ else }}
-                            <span class="muted">Нет действий</span>
+                        <!-- Блок 3. Удаление (только админ) -->
+                        {{ if $.IsAdmin }}
+                        <div class="actions-block">
+                            <span class="muted">Опасные действия:</span>
+                            <form method="post" action="/projects/{{ .ID }}/delete"
+                                  onsubmit="return confirm('Удалить проект {{ .Title }}?');">
+                                <button type="submit" class="btn small danger">Удалить</button>
+                            </form>
+                        </div>
                         {{ end }}
 
                     </div>

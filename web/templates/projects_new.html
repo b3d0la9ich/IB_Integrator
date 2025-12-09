@@ -7,13 +7,13 @@
 </head>
 <body>
 <header class="topbar">
-    <div class="logo">IB Integrator</div>
+    <a href="/" class="logo">IB Integrator</a>
 
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
         <a href="/projects">Проекты</a>
-        {{ if and .CurrentUser (eq .CurrentUser.Role "admin") }}
+        {{ if .IsAdmin }}
             <a href="/audit">Аудит</a>
         {{ end }}
         <a href="/logout">Выход</a>
@@ -25,7 +25,6 @@
         {{ end }}
     </div>
 </header>
-
 
 <main class="content">
     <h2>Создание проекта по ИБ</h2>
@@ -86,12 +85,19 @@
                         </select>
                     </label>
 
-                    <label>Планируемая дата начала
-                        <input type="date" name="planned_start" id="startDate">
-                    </label>
-
-                    <label>Планируемая дата окончания
-                        <input type="date" name="planned_end" id="endDate">
+                    <!-- красивый диапазон дат -->
+                    <label class="full">Планируемые сроки
+                        <div class="date-range">
+                            <div class="date-field">
+                                <span class="date-caption">Начало</span>
+                                <input type="date" name="planned_start" id="startDate">
+                            </div>
+                            <span class="date-sep">→</span>
+                            <div class="date-field">
+                                <span class="date-caption">Окончание</span>
+                                <input type="date" name="planned_end" id="endDate">
+                            </div>
+                        </div>
                     </label>
 
                     <label class="full">Краткое описание работ

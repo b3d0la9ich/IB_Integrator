@@ -149,6 +149,59 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 		handlers.ShowProjectHistory,
 	)
 
+	// ====== УГРОЗЫ И МЕРЫ ЗАЩИТЫ ======
+	// каталог (admin + engineer)
+	auth.GET("/threats",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.ListThreatsAndMeasures,
+	)
+
+	auth.GET("/threats/new",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.ShowNewThreat,
+	)
+	auth.POST("/threats/new",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.CreateThreat,
+	)
+
+	auth.GET("/measures/new",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.ShowNewMeasure,
+	)
+	auth.POST("/measures/new",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.CreateMeasure,
+	)
+
+	// угрозы конкретного объекта защиты
+	auth.GET("/assets/:id/threats",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.ShowAssetThreats,
+	)
+	auth.POST("/assets/:id/threats/add",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.AddAssetThreat,
+	)
+	auth.POST("/assets/:id/threats/:link_id/delete",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.DeleteAssetThreat,
+	)
+
+	// меры защиты конкретного проекта
+	auth.GET("/projects/:id/measures",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.ShowProjectMeasures,
+	)
+	auth.POST("/projects/:id/measures/add",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.AddProjectMeasure,
+	)
+	auth.POST("/projects/:id/measures/:link_id/delete",
+		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
+		handlers.DeleteProjectMeasure,
+	)
+
 	// АУДИТ
 	auth.GET("/audit",
 		middleware.RequireRole(models.RoleAdmin, models.RoleViewer),

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Новая мера защиты</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a href="/" class="logo">IB Integrator</a>
+
+    <nav>
+        <a href="/clients">Клиенты</a>
+        <a href="/assets">Объекты защиты</a>
+        <a href="/projects">Проекты</a>
+        <a href="/threats">Угрозы и меры</a>
+        <a href="/logout">Выход</a>
+    </nav>
+</header>
+
+<main class="content">
+    <h2>Новая мера защиты</h2>
+
+    {{ if .error }}
+        <div class="error">{{ .error }}</div>
+    {{ end }}
+
+    <div class="card form-card">
+        <form method="post" action="/measures/new" class="form-grid">
+
+            <label class="full">
+                Код меры
+                <input type="text" name="code"
+                       list="measure-code-templates"
+                       placeholder="M1, A.9.2, TR_IB_01">
+                <datalist id="measure-code-templates">
+                    <option value="M1">
+                    <option value="M2">
+                    <option value="FW-NET-SEGMENT">
+                    <option value="AUTH-RBAC">
+                    <option value="LOG-AUDIT">
+                    <option value="DB-BACKUP">
+                    <option value="SEC-CODE-REV">
+                    <option value="A.9.2">
+                    <option value="A.13.1">
+                    <option value="TR_IB_01">
+                </datalist>
+            </label>
+
+            <label class="full">
+                Название *
+                <input type="text" name="name" required
+                       placeholder="Настройка межсетевого экрана">
+            </label>
+
+            <label class="full">
+                Стандарт / норматив
+                <select name="standard">
+                    <option value="">— выберите стандарт / норматив —</option>
+                    <option value="ФСТЭК">ФСТЭК (приказы, методики)</option>
+                    <option value="ГОСТ">ГОСТ / национальные стандарты</option>
+                    <option value="ISO 27001">ISO/IEC 27001</option>
+                    <option value="ISO 27002">ISO/IEC 27002</option>
+                    <option value="Положение ИБ организации">Внутренний стандарт организации</option>
+                    <option value="OWASP / best practices">OWASP / best practices</option>
+                    <option value="Другое">Другое</option>
+                </select>
+            </label>
+
+            <label class="full">
+                Описание
+                <textarea name="description"
+                          placeholder="Суть меры, состав работ, ожидаемый эффект."></textarea>
+            </label>
+
+            <div class="form-actions">
+                <button type="submit" class="btn">Сохранить</button>
+                <a href="/threats" class="btn secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

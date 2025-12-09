@@ -7,16 +7,16 @@
 </head>
 <body>
 <header class="topbar">
-    <div class="logo">IB Integrator</div>
+    <a href="/" class="logo">IB Integrator</a>
+
 
     <nav>
-        <a href="/clients">Клиенты</a>
-        <a href="/assets">Объекты защиты</a>
-        <a href="/projects">Проекты</a>
-        {{ if and .CurrentUser (eq .CurrentUser.Role "admin") }}
-            <a href="/audit">Аудит</a>
+        {{ if .CurrentUser }}
+            <a href="/clients">Клиенты</a>
+            <a href="/assets">Объекты защиты</a>
+            <a href="/projects">Проекты</a>
+            <a href="/logout">Выход</a>
         {{ end }}
-        <a href="/logout">Выход</a>
     </nav>
 
     <div class="user-info">
@@ -25,7 +25,6 @@
         {{ end }}
     </div>
 </header>
-
 
 <main class="content">
     <div class="hero">
@@ -43,9 +42,15 @@
                 <li>Роли пользователей, маскирование контактов, журнал аудита</li>
             </ul>
 
+            <!-- ✅ КНОПКИ В ЗАВИСИМОСТИ ОТ АВТОРИЗАЦИИ -->
             <div class="hero-actions">
-                <a href="/login" class="btn">Войти</a>
-                <a href="/register" class="btn secondary">Регистрация</a>
+                {{ if .CurrentUser }}
+                    <a href="/clients" class="btn">Личный кабинет</a>
+                    <a href="/logout" class="btn secondary">Выйти</a>
+                {{ else }}
+                    <a href="/login" class="btn">Войти</a>
+                    <a href="/register" class="btn secondary">Регистрация</a>
+                {{ end }}
             </div>
         </div>
 
