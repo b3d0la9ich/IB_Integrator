@@ -22,8 +22,6 @@ func ShowClientDetail(c *gin.Context) {
 	// Грузим клиента сразу с объектами защиты и проектами
 	if err := database.DB.
 		Preload("Assets").
-		Preload("Projects").
-		Preload("Projects.Asset").
 		First(&client, id).Error; err != nil {
 		c.String(http.StatusNotFound, "Клиент не найден")
 		return

@@ -12,12 +12,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// helper: кто может управлять клиентами (admin + sales)
-func isAdmin(c *gin.Context) bool {
+// admin или sales: могут СОЗДАВАТЬ клиентов
+func canManageClients(c *gin.Context) bool {
 	sess := sessions.Default(c)
 	roleStr, _ := sess.Get("role").(string)
 	role := models.UserRole(roleStr)
 	return role == models.RoleAdmin || role == models.RoleSales
+}
+
+// только admin: может РЕДАКТИРОВАТЬ клиентов
+func canEditClients(c *gin.Context) bool {
+	sess := sessions.Default(c)
+	roleStr, _ := sess.Get("role").(string)
+	role := models.UserRole(roleStr)
+	return role == models.RoleAdmin
 }
 
 //
@@ -34,12 +42,13 @@ func ListClients(c *gin.Context) {
 
 	render(c, http.StatusOK, "clients_list.html", gin.H{
 		"clients": clients,
-		"IsAdmin": role == models.RoleAdmin, // именно "настоящий" админ
+		"IsAdmin": role == models.RoleAdmin,
+		"IsSales": role == models.RoleSales,
 	})
 }
 
 func ShowNewClient(c *gin.Context) {
-	if !isAdmin(c) {
+	if !canManageClients(c) {
 		c.String(http.StatusForbidden, "Недостаточно прав")
 		return
 	}
@@ -50,7 +59,7 @@ func ShowNewClient(c *gin.Context) {
 }
 
 func CreateClient(c *gin.Context) {
-	if !isAdmin(c) {
+	if !canManageClients(c) {
 		c.String(http.StatusForbidden, "Недостаточно прав")
 		return
 	}
@@ -146,9 +155,9 @@ func CreateClient(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/clients")
 }
 
-// форма редактирования
+// форма редактирования — ТОЛЬКО ADMIN
 func ShowEditClient(c *gin.Context) {
-	if !isAdmin(c) {
+	if !canEditClients(c) {
 		c.String(http.StatusForbidden, "Недостаточно прав")
 		return
 	}
@@ -172,9 +181,9 @@ func ShowEditClient(c *gin.Context) {
 	})
 }
 
-// сохранение изменений
+// сохранение изменений — ТОЛЬКО ADMIN
 func UpdateClient(c *gin.Context) {
-	if !isAdmin(c) {
+	if !canEditClients(c) {
 		c.String(http.StatusForbidden, "Недостаточно прав")
 		return
 	}

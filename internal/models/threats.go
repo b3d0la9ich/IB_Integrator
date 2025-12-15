@@ -33,17 +33,3 @@ type AssetThreat struct {
 	Asset  Asset
 	Threat Threat
 }
-
-// Связь "мера в конкретном проекте"
-type ProjectMeasure struct {
-	ID uint `gorm:"primaryKey"`
-
-	ProjectID uint
-	MeasureID uint
-
-	Status string `gorm:"size:16"`      // planned / in_progress / done
-	Notes  string `gorm:"type:text"`    // детали реализации, ссылки на отчёты
-
-	Project Project
-	Measure ControlMeasure
-}

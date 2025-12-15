@@ -12,7 +12,6 @@
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
-        <a href="/projects">Проекты</a>
         {{ if or (eq .role "admin") (eq .role "viewer") }}
             <a href="/audit">Аудит</a>
         {{ end }}

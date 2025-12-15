@@ -93,6 +93,17 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 	)
 	auth.GET("/clients/:id", handlers.ShowClientDetail)
 
+	// редактирование клиентов — только админ
+	auth.GET("/clients/:id/edit",
+		middleware.RequireRole(models.RoleAdmin),
+		handlers.ShowEditClient,
+	)
+	auth.POST("/clients/:id/edit",
+		middleware.RequireRole(models.RoleAdmin),
+		handlers.UpdateClient,
+	)
+
+
 	// ОБЪЕКТЫ ЗАЩИТЫ
 	auth.GET("/assets", handlers.ListAssets)
 
@@ -115,39 +126,6 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 		handlers.UpdateAsset,
 	)
 
-	// ПРОЕКТЫ
-	auth.GET("/projects", handlers.ListProjects)
-
-	auth.GET("/projects/new",
-		middleware.RequireRole(models.RoleAdmin, models.RoleSales),
-		handlers.ShowNewProject,
-	)
-	auth.POST("/projects/new",
-		middleware.RequireRole(models.RoleAdmin, models.RoleSales),
-		handlers.CreateProject,
-	)
-
-	// редактирование проектов — только админ
-	auth.GET("/projects/:id/edit",
-		middleware.RequireRole(models.RoleAdmin),
-		handlers.ShowEditProject,
-	)
-	auth.POST("/projects/:id/edit",
-		middleware.RequireRole(models.RoleAdmin),
-		handlers.UpdateProject,
-	)
-
-	// смена статуса проекта: admin + sales + engineer
-	auth.POST("/projects/:id/status",
-		middleware.RequireRole(models.RoleAdmin, models.RoleSales, models.RoleEngineer),
-		handlers.ChangeProjectStatus,
-	)
-
-	// история проекта
-	auth.GET("/projects/:id/history",
-		middleware.RequireRole(models.RoleAdmin, models.RoleSales, models.RoleEngineer),
-		handlers.ShowProjectHistory,
-	)
 
 	// ====== УГРОЗЫ И МЕРЫ ЗАЩИТЫ ======
 	// каталог (admin + engineer)
@@ -186,20 +164,6 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 	auth.POST("/assets/:id/threats/:link_id/delete",
 		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
 		handlers.DeleteAssetThreat,
-	)
-
-	// меры защиты конкретного проекта
-	auth.GET("/projects/:id/measures",
-		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
-		handlers.ShowProjectMeasures,
-	)
-	auth.POST("/projects/:id/measures/add",
-		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
-		handlers.AddProjectMeasure,
-	)
-	auth.POST("/projects/:id/measures/:link_id/delete",
-		middleware.RequireRole(models.RoleAdmin, models.RoleEngineer),
-		handlers.DeleteProjectMeasure,
 	)
 
 	// АУДИТ

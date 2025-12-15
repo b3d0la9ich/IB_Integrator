@@ -41,14 +41,12 @@ func Init(dsn string) {
 		&models.User{},
 		&models.Client{},
 		&models.Asset{},
-		&models.Project{},
 		&models.AuditLog{},
 
 		// 💾 новые таблицы каталога угроз и мер
 		&models.Threat{},
 		&models.ControlMeasure{},
 		&models.AssetThreat{},
-		&models.ProjectMeasure{},
 		&models.ThreatMeasure{}, // <--- СВЯЗЬ УГРОЗА → МЕРА
 	)
 	if err != nil {

@@ -1,69 +1,80 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Клиенты</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+  <meta charset="UTF-8">
+  <title>Клиенты</title>
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 <header class="topbar">
-    <a href="/" class="logo">IB Integrator</a>
+  <a href="/" class="logo">IB Integrator</a>
 
+  <nav>
+    <a href="/clients">Клиенты</a>
+    <a href="/assets">Объекты защиты</a>
+    {{ if .IsAdmin }}
+      <a href="/audit">Аудит</a>
+    {{ end }}
+    <a href="/logout">Выход</a>
+  </nav>
 
-    <nav>
-        <a href="/clients">Клиенты</a>
-        <a href="/assets">Объекты защиты</a>
-        <a href="/projects">Проекты</a>
-        {{ if .IsAdmin }}
-            <a href="/audit">Аудит</a>
-        {{ end }}
-        <a href="/logout">Выход</a>
-    </nav>
-
-    <div class="user-info">
-        {{ if .CurrentUser }}
-            👤 {{ .CurrentUser.Username }} ({{ .CurrentUser.Role }})
-        {{ end }}
-    </div>
+  <div class="user-info">
+    {{ if .CurrentUser }}
+      👤 {{ .CurrentUser.Username }} ({{ .CurrentUser.Role }})
+    {{ end }}
+  </div>
 </header>
 
-
 <main class="content">
-    <div class="page-header">
-        <h2>Клиенты</h2>
+  <div class="page-header">
+    <h2>Клиенты</h2>
 
-        {{/* кнопку видят только admin и sales */}}
-        {{ if or $.IsAdmin $.IsSales }}
-            <a class="btn" href="/clients/new">Новый клиент</a>
-        {{ end }}
-    </div>
-
-    {{ if not .clients }}
-        <p>Клиенты пока не заведены.</p>
-    {{ else }}
-    <table class="table">
-        <thead>
-        <tr>
-            <th>Название</th>
-            <th>Тип</th>
-            <th>Контакт</th>
-        </tr>
-        </thead>
-        <tbody>
-        {{ range .clients }}
-            <tr>
-                <td><a href="/clients/{{ .ID }}">{{ .Name }}</a></td>
-                <td>{{ .OrgType }}</td>
-                <td>
-                    {{ if .ContactEmail }}{{ maskEmail .ContactEmail }}{{ end }}
-                    {{ if and .ContactEmail .ContactPhone }} / {{ end }}
-                    {{ if .ContactPhone }}{{ maskPhone .ContactPhone }}{{ end }}
-                </td>
-            </tr>
-        {{ end }}
-        </tbody>
-    </table>
+    {{/* Новый клиент: admin или sales */}}
+    {{ if or .IsAdmin .IsSales }}
+      <a class="btn" href="/clients/new">Новый клиент</a>
     {{ end }}
+  </div>
+
+  {{ if not .clients }}
+    <p>Клиенты пока не заведены.</p>
+  {{ else }}
+    <table class="table">
+      <thead>
+      <tr>
+        <th>Название</th>
+        <th>Тип</th>
+        <th>Отрасль</th>
+        <th>Контакт</th>
+        {{ if .IsAdmin }}<th>Действия</th>{{ end }}
+      </tr>
+      </thead>
+
+      <tbody>
+      {{ range .clients }}
+        <tr>
+          <td><a href="/clients/{{ .ID }}">{{ .Name }}</a></td>
+          <td>{{ .OrgType }}</td>
+          <td>{{ .Industry }}</td>
+          <td>
+            {{ if .ContactName }}{{ .ContactName }}{{ end }}
+            {{ if and .ContactName .ContactPost }} — {{ end }}
+            {{ if .ContactPost }}{{ .ContactPost }}{{ end }}
+            <br>
+            {{ if .ContactEmail }}{{ maskEmail .ContactEmail }}{{ end }}
+            {{ if and .ContactEmail .ContactPhone }} / {{ end }}
+            {{ if .ContactPhone }}{{ maskPhone .ContactPhone }}{{ end }}
+          </td>
+
+          {{ if $.IsAdmin }}
+            <td>
+              <a class="btn" href="/clients/{{ .ID }}/edit">Редактировать</a>
+            </td>
+          {{ end }}
+        </tr>
+      {{ end }}
+      </tbody>
+    </table>
+  {{ end }}
 </main>
 </body>
 </html>

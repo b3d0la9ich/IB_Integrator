@@ -13,7 +13,6 @@
     <nav>
         <a href="/clients">Клиенты</a>
         <a href="/assets">Объекты защиты</a>
-        <a href="/projects">Проекты</a>
         {{ if .IsAdmin }}
             <a href="/audit">Аудит</a>
         {{ end }}
@@ -76,41 +75,6 @@
                 </table>
             {{ else }}
                 <p class="muted">Для этого клиента пока не заведены объекты защиты.</p>
-            {{ end }}
-        </div>
-
-        <!-- Проекты клиента -->
-        <div class="card">
-            <h3>Проекты по ИБ</h3>
-
-            {{ if .client.Projects }}
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th>Название</th>
-                        <th>Объект защиты</th>
-                        <th>Тип</th>
-                        <th>Статус</th>
-                        <th>План. даты</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {{ range .client.Projects }}
-                        <tr>
-                            <td>{{ .Title }}</td>
-                            <td>{{ if .Asset }}{{ .Asset.Name }}{{ end }}</td>
-                            <td>{{ .Type }}</td>
-                            <td>{{ .Status }}</td>
-                            <td>
-                                {{ if .PlannedStart }}с {{ .PlannedStart.Format "2006-01-02" }}{{ end }}
-                                {{ if .PlannedEnd }} по {{ .PlannedEnd.Format "2006-01-02" }}{{ end }}
-                            </td>
-                        </tr>
-                    {{ end }}
-                    </tbody>
-                </table>
-            {{ else }}
-                <p class="muted">Для этого клиента пока нет проектов.</p>
             {{ end }}
         </div>
 
